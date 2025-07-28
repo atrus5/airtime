@@ -167,7 +167,6 @@
                     <p class="text-gray-600">Track your favorite air fryer cooking times and settings.</p>
                 </div>
 
-                <!-- NEW: Search and Sort Controls -->
                 <div class="mb-6 flex flex-col sm:flex-row gap-4">
                     <div class="relative flex-grow">
                         <input type="text" id="search-input" class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg" placeholder="Search for food items...">
@@ -435,7 +434,7 @@
             const timerIdInput = document.getElementById('timer-id');
             const foodImageInput = document.getElementById('food-image');
             const imagePreview = document.getElementById('image-preview');
-            const sortSelect = document.getElementById('sort-by-select'); // NEW
+            const sortSelect = document.getElementById('sort-by-select');
 
             const countdownDisplay = document.getElementById('countdown-display');
             const countdownMinutesInput = document.getElementById('countdown-minutes');
@@ -547,7 +546,7 @@
             tempSlider.addEventListener('input', updateTempValue);
             tempUnitToggle.addEventListener('change', toggleTempUnit);
             searchInput.addEventListener('input', filterTimers);
-            sortSelect.addEventListener('change', filterTimers); // NEW
+            sortSelect.addEventListener('change', filterTimers);
             
             categoryBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -764,22 +763,19 @@
             }
             
             function filterTimers() {
-                let filteredTimers = [...timers]; // Create a copy to avoid sorting the original array
+                let filteredTimers = [...timers];
                 const searchTerm = searchInput.value.toLowerCase();
                 
-                // 1. Filter by category/favorites
                 if (showingFavorites) {
                     filteredTimers = filteredTimers.filter(timer => timer.favorite);
                 } else if (currentCategory !== 'all') {
                     filteredTimers = filteredTimers.filter(timer => timer.category === currentCategory);
                 }
                 
-                // 2. Filter by search term
                 if (searchTerm) {
                     filteredTimers = filteredTimers.filter(timer => timer.name.toLowerCase().includes(searchTerm));
                 }
 
-                // 3. Sort the filtered results
                 const sortBy = sortSelect.value;
                 switch(sortBy) {
                     case 'latest':
@@ -994,7 +990,6 @@
                 countdownMinutesInput.value = minutes;
                 countdownSecondsInput.value = seconds;
                 startCountdown();
-                // Scroll to the top where the timer is.
                 document.getElementById('countdown-timer-section').scrollIntoView({ behavior: 'smooth' });
             }
             
@@ -1017,10 +1012,9 @@
                 if (!currentUser) return;
                 const collectionRef = db.collection('users').doc(currentUser.uid).collection('timers');
                 
-                // MODIFIED: Removed orderBy('name') to allow for custom client-side sorting
                 unsubscribe = collectionRef.onSnapshot(snapshot => {
                     timers = snapshot.docs.map(doc => doc.data());
-                    renderTimers(); // Will now filter and sort
+                    renderTimers();
                 }, error => {
                     console.error("Error fetching timers:", error);
                     showToast("Could not load timers from the cloud.", "error");
@@ -1060,7 +1054,7 @@
                     { id: 1, name: "Chicken Breast (6 oz)", imageUrl: "https://placehold.co/600x400/f97316/ffffff?text=Chicken", category: "chicken", foodState: "fresh", temperature: 190, tempUnit: "C", minutes: 15, seconds: 0, notes: "Flip halfway through.", favorite: false },
                     { id: 2, name: "Ribeye Steak (1 inch)", imageUrl: "https://placehold.co/600x400/ef4444/ffffff?text=Steak", category: "beef", foodState: "fresh", temperature: 200, tempUnit: "C", minutes: 12, seconds: 0, notes: "For medium rare.", favorite: true },
                     { id: 6, name: "Brussels Sprouts", imageUrl: "https://placehold.co/600x400/22c55e/ffffff?text=Veggies", category: "vegetables", foodState: "fresh", temperature: 190, tempUnit: "C", minutes: 10, seconds: 0, notes: "Toss with olive oil.", favorite: true },
-                    { id: 10, name: "Frozen Mozzarella Sticks", imageUrl: "", category: "frozen", foodState: "frozen", temperature: 190, tempUnit: "C", minutes: 6, seconds: 0, notes: "No need to thaw.", favorite: false }
+                    { id: 10, name: "Frozen Mozzarella Sticks", imageUrl: "https://placehold.co/600x400/eab308/ffffff?text=Frozen+Food", category: "frozen", foodState: "frozen", temperature: 190, tempUnit: "C", minutes: 6, seconds: 0, notes: "No need to thaw.", favorite: false }
                 ];
             }
         });
