@@ -23,10 +23,11 @@
             background-color: white;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
         }
-        .toggle-checked:checked + .toggle-label {
+        /* MODIFIED: Corrected CSS for toggle switch */
+        .toggle-checkbox:checked + .toggle-label {
             background-color: #4f46e5;
         }
-        .toggle-checked:checked + .toggle-label .toggle-dot {
+        .toggle-checkbox:checked + .toggle-label .toggle-dot {
             transform: translateX(100%);
         }
         .card {
@@ -36,7 +37,7 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
-        .add-timer-modal, .food-category-modal, .export-modal {
+        .add-timer-modal, .food-category-modal, .export-modal, .recipe-modal, .add-recipe-modal {
             transition: opacity 0.3s ease;
         }
         .temp-slider::-webkit-slider-thumb {
@@ -76,7 +77,7 @@
 <body class="bg-gray-100">
     <div class="app-container">
         <header class="bg-indigo-600 text-white p-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold">Air Fryer Times</h1>
+            <img src="https://i.imgur.com/sBo4EKt.png" alt="Air Fryer Times Logo" class="h-10">
             <div class="flex items-center space-x-2">
                 <div id="auth-container" class="flex items-center space-x-2">
                     <button id="google-signin-btn" class="bg-white text-indigo-600 px-3 py-1 rounded-md text-sm font-medium">
@@ -96,111 +97,138 @@
             </div>
         </header>
 
-        <div id="sticky-nav" class="sticky top-0 z-20 bg-white shadow-md">
-            <div class="p-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-700 mb-3">Categories</h3>
-                <div class="flex overflow-x-auto pb-2 space-x-3">
-                    <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-indigo-100 rounded-lg min-w-[70px] ring-2 ring-indigo-500" data-category="all">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="category-icon text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                        </svg>
-                        <span class="text-xs mt-1 text-indigo-700">All</span>
-                    </button>
-                    <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-red-100 rounded-lg min-w-[70px]" data-category="beef">
-                         <span class="text-2xl">🥩</span>
-                        <span class="text-xs mt-1 text-red-700">Beef</span>
-                    </button>
-                    <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-orange-100 rounded-lg min-w-[70px]" data-category="chicken">
-                        <span class="text-2xl">🍗</span>
-                        <span class="text-xs mt-1 text-orange-700">Chicken</span>
-                    </button>
-                    <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-blue-100 rounded-lg min-w-[70px]" data-category="fish">
-                        <span class="text-2xl">🐟</span>
-                        <span class="text-xs mt-1 text-blue-700">Fish</span>
-                    </button>
-                    <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-pink-100 rounded-lg min-w-[70px]" data-category="pork">
-                        <span class="text-2xl">🐖</span>
-                        <span class="text-xs mt-1 text-pink-700">Pork</span>
-                    </button>
-                    <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-green-100 rounded-lg min-w-[70px]" data-category="vegetables">
-                        <span class="text-2xl">🥦</span>
-                        <span class="text-xs mt-1 text-green-700">Veggies</span>
-                    </button>
-                    <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-yellow-100 rounded-lg min-w-[70px]" data-category="frozen">
-                        <span class="text-2xl">❄️</span>
-                        <span class="text-xs mt-1 text-yellow-700">Frozen</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <main class="pb-20">
-            <div id="countdown-timer-section" class="p-4 bg-indigo-50 border-b border-indigo-200">
-                <h3 class="text-lg font-semibold text-gray-700 mb-2 text-center">Quick Timer</h3>
-                <div id="countdown-display" class="text-6xl font-mono text-center text-indigo-600 mb-3">00:00</div>
-                <div class="flex justify-center space-x-2 mb-3" id="countdown-inputs">
-                    <div>
-                        <label for="countdown-minutes" class="text-xs text-gray-600">Minutes</label>
-                        <input type="number" id="countdown-minutes" min="0" max="99" class="w-20 px-2 py-1 border border-gray-300 rounded-md text-center" placeholder="00">
-                    </div>
-                    <div>
-                        <label for="countdown-seconds" class="text-xs text-gray-600">Seconds</label>
-                        <input type="number" id="countdown-seconds" min="0" max="59" class="w-20 px-2 py-1 border border-gray-300 rounded-md text-center" placeholder="00">
+            <!-- Timers Page -->
+            <div id="timers-page">
+                <div id="sticky-nav" class="sticky top-0 z-20 bg-white shadow-md">
+                    <div class="p-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-3">Categories</h3>
+                        <div class="flex overflow-x-auto pb-2 space-x-3">
+                            <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-indigo-100 rounded-lg min-w-[70px] ring-2 ring-indigo-500" data-category="all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="category-icon text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                </svg>
+                                <span class="text-xs mt-1 text-indigo-700">All</span>
+                            </button>
+                            <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-red-100 rounded-lg min-w-[70px]" data-category="beef">
+                                 <span class="text-2xl">🥩</span>
+                                <span class="text-xs mt-1 text-red-700">Beef</span>
+                            </button>
+                            <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-orange-100 rounded-lg min-w-[70px]" data-category="chicken">
+                                <span class="text-2xl">🍗</span>
+                                <span class="text-xs mt-1 text-orange-700">Chicken</span>
+                            </button>
+                            <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-blue-100 rounded-lg min-w-[70px]" data-category="fish">
+                                <span class="text-2xl">🐟</span>
+                                <span class="text-xs mt-1 text-blue-700">Fish</span>
+                            </button>
+                            <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-pink-100 rounded-lg min-w-[70px]" data-category="pork">
+                                <span class="text-2xl">🐖</span>
+                                <span class="text-xs mt-1 text-pink-700">Pork</span>
+                            </button>
+                            <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-green-100 rounded-lg min-w-[70px]" data-category="vegetables">
+                                <span class="text-2xl">🥦</span>
+                                <span class="text-xs mt-1 text-green-700">Veggies</span>
+                            </button>
+                            <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-yellow-100 rounded-lg min-w-[70px]" data-category="frozen">
+                                <span class="text-2xl">❄️</span>
+                                <span class="text-xs mt-1 text-yellow-700">Frozen</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div class="flex justify-center space-x-4">
-                    <button id="countdown-start-btn" class="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 shadow-md">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    </button>
-                    <button id="countdown-pause-btn" class="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 shadow-md hidden">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    </button>
-                    <button id="countdown-reset-btn" class="p-3 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5" /><path d="M4 9a9 9 0 0114.65-4.65l-2.12 2.12a5 5 0 00-10.41 2.53" /><path d="M20 15a9 9 0 01-14.65 4.65l2.12-2.12a5 5 0 0010.41-2.53" /></svg>
-                    </button>
+                <div id="countdown-timer-section" class="p-4 bg-indigo-50 border-b border-indigo-200">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2 text-center">Quick Timer</h3>
+                    <div id="countdown-display" class="text-6xl font-mono text-center text-indigo-600 mb-3">00:00</div>
+                    <div class="flex justify-center space-x-2 mb-3" id="countdown-inputs">
+                        <div>
+                            <label for="countdown-minutes" class="text-xs text-gray-600">Minutes</label>
+                            <input type="number" id="countdown-minutes" min="0" max="99" class="w-20 px-2 py-1 border border-gray-300 rounded-md text-center" placeholder="00">
+                        </div>
+                        <div>
+                            <label for="countdown-seconds" class="text-xs text-gray-600">Seconds</label>
+                            <input type="number" id="countdown-seconds" min="0" max="59" class="w-20 px-2 py-1 border border-gray-300 rounded-md text-center" placeholder="00">
+                        </div>
+                    </div>
+                    <div class="flex justify-center space-x-4">
+                        <button id="countdown-start-btn" class="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </button>
+                        <button id="countdown-pause-btn" class="p-3 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 shadow-md hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </button>
+                        <button id="countdown-reset-btn" class="p-3 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5" /><path d="M4 9a9 9 0 0114.65-4.65l-2.12 2.12a5 5 0 00-10.41 2.53" /><path d="M20 15a9 9 0 01-14.65 4.65l2.12-2.12a5 5 0 0010.41-2.53" /></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-4">
+                    <div id="welcome-message" class="mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">Air Fryer Cooking Times</h2>
+                        <p class="text-gray-600">Track your favorite air fryer cooking times and settings.</p>
+                    </div>
+
+                    <div class="mb-6 flex flex-col sm:flex-row gap-4">
+                        <div class="relative flex-grow">
+                            <input type="text" id="search-input" class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg" placeholder="Search for food items...">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <div class="flex-shrink-0">
+                             <select id="sort-by-select" class="w-full sm:w-auto px-4 py-3 border border-gray-300 rounded-lg">
+                                <option value="latest">Sort: Latest Added</option>
+                                <option value="alpha-asc">Sort: Name (A-Z)</option>
+                                <option value="alpha-desc">Sort: Name (Z-A)</option>
+                                <option value="time-desc">Sort: Time (Longest)</option>
+                                <option value="time-asc">Sort: Time (Shortest)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <button id="add-timer-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Add New Time
+                        </button>
+                    </div>
+
+                    <div id="timer-container" class="space-y-4">
+                        <div class="text-center py-8 text-gray-500" id="no-timers">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            <p>No timers yet. Add your first timer!</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="p-4">
-                <div id="welcome-message" class="mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Air Fryer Cooking Times</h2>
-                    <p class="text-gray-600">Track your favorite air fryer cooking times and settings.</p>
-                </div>
-
-                <!-- NEW: Search and Sort Controls -->
-                <div class="mb-6 flex flex-col sm:flex-row gap-4">
-                    <div class="relative flex-grow">
-                        <input type="text" id="search-input" class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg" placeholder="Search for food items...">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+            <!-- Recipes Page -->
+            <div id="recipes-page" class="hidden">
+                 <div class="p-4">
+                    <div class="mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">My Recipes</h2>
+                        <p class="text-gray-600">Your collection of air fryer recipes.</p>
                     </div>
-                    <div class="flex-shrink-0">
-                         <select id="sort-by-select" class="w-full sm:w-auto px-4 py-3 border border-gray-300 rounded-lg">
-                            <option value="latest">Sort: Latest Added</option>
-                            <option value="alpha-asc">Sort: Name (A-Z)</option>
-                            <option value="alpha-desc">Sort: Name (Z-A)</option>
-                            <option value="time-desc">Sort: Time (Longest)</option>
-                            <option value="time-asc">Sort: Time (Shortest)</option>
-                        </select>
+                    <div class="mb-6">
+                        <button id="add-recipe-btn" class="w-full bg-green-600 text-white py-3 rounded-lg font-medium flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Add New Recipe
+                        </button>
                     </div>
-                </div>
-
-                <div class="mb-6">
-                    <button id="add-timer-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                        </svg>
-                        Add New Time
-                    </button>
-                </div>
-
-                <div id="timer-container" class="space-y-4">
-                    <div class="text-center py-8 text-gray-500" id="no-timers">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        <p>No timers yet. Add your first timer!</p>
+                    <div id="recipe-container" class="space-y-4">
+                         <div class="text-center py-8 text-gray-500" id="no-recipes">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p>No recipes yet. Add your first one!</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -208,24 +236,19 @@
 
         <nav class="fixed bottom-0 w-full max-w-[480px] bg-white border-t border-gray-200 py-2">
             <div class="flex justify-around">
-                <button id="home-btn" class="flex flex-col items-center px-4 py-2 text-indigo-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                    <span class="text-xs mt-1">Home</span>
+                <button id="timers-nav-btn" class="flex flex-col items-center px-4 py-2 text-indigo-600">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span class="text-xs mt-1">Timers</span>
                 </button>
-                <button class="flex flex-col items-center px-4 py-2 text-gray-500" id="favorites-btn">
+                <button id="recipes-nav-btn" class="flex flex-col items-center px-4 py-2 text-gray-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                    <span class="text-xs mt-1">Recipes</span>
+                </button>
+                <button id="favorites-btn" class="flex flex-col items-center px-4 py-2 text-gray-500">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                     </svg>
                     <span class="text-xs mt-1">Favorites</span>
-                </button>
-                <button class="flex flex-col items-center px-4 py-2 text-gray-500" id="settings-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span class="text-xs mt-1">Settings</span>
                 </button>
             </div>
         </nav>
@@ -233,7 +256,7 @@
         <div id="add-timer-modal" class="add-timer-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
             <div class="bg-white rounded-lg p-6 w-11/12 max-w-md max-h-[90vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Add New Timer</h2>
+                    <h2 class="text-xl font-bold text-gray-800">Add New Time</h2>
                     <button class="close-modal text-gray-500">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -245,12 +268,6 @@
                     <div class="mb-4">
                         <label for="food-name" class="block text-sm font-medium text-gray-700 mb-1">Food Item</label>
                         <input type="text" id="food-name" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="e.g. Chicken Breast, Steak" required>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label for="food-image" class="block text-sm font-medium text-gray-700 mb-1">Image (Optional)</label>
-                        <input type="file" id="food-image" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept="image/*">
-                        <img id="image-preview" src="" class="hidden mt-2 w-full rounded-md max-h-40 object-cover"/>
                     </div>
                     
                     <div class="mb-4">
@@ -284,17 +301,20 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Temperature</label>
                         <div class="flex items-center mb-2">
                             <input type="range" id="temp-slider" min="160" max="400" value="180" class="w-full temp-slider">
-                            <span id="temp-value" class="ml-2 w-16 text-center">180°C</span>
+                            <!-- MODIFIED: Replaced span with number input -->
+                            <input type="number" id="temp-input" class="ml-2 w-20 text-center border border-gray-300 rounded-md p-1">
                         </div>
                         <div class="flex justify-end">
+                             <!-- MODIFIED: Corrected HTML structure for toggle -->
                             <label class="inline-flex items-center cursor-pointer">
-                                <span class="mr-2 text-sm text-gray-700">°C</span>
+                                <span class="mr-3 text-sm font-medium text-gray-900">°C</span>
                                 <div class="relative">
-                                    <input type="checkbox" id="temp-unit-toggle" class="sr-only toggle-checked">
-                                    <div class="w-10 h-5 bg-gray-200 rounded-full shadow-inner"></div>
-                                    <div class="toggle-dot absolute w-3 h-3 bg-white rounded-full shadow left-1 top-1 transition"></div>
+                                    <input type="checkbox" id="temp-unit-toggle" class="sr-only toggle-checkbox">
+                                    <div class="toggle-label block bg-gray-200 w-10 h-6 rounded-full">
+                                        <div class="toggle-dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+                                    </div>
                                 </div>
-                                <span class="ml-2 text-sm text-gray-700">°F</span>
+                                <span class="ml-3 text-sm font-medium text-gray-900">°F</span>
                             </label>
                         </div>
                     </div>
@@ -317,11 +337,82 @@
                         <label for="food-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
                         <textarea id="food-notes" class="w-full px-3 py-2 border border-gray-300 rounded-md" rows="2" placeholder="Any special instructions or notes"></textarea>
                     </div>
+
+                    <div class="mb-4">
+                        <label for="linked-recipe" class="block text-sm font-medium text-gray-700 mb-1">Link to Recipe (Optional)</label>
+                        <select id="linked-recipe" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            <option value="">None</option>
+                        </select>
+                    </div>
                     
-                    <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md font-medium">Save Timer</button>
+                    <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md font-medium">Save Time</button>
                 </form>
             </div>
         </div>
+        
+        <!-- Add Recipe Modal -->
+        <div id="add-recipe-modal" class="add-recipe-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg p-6 w-11/12 max-w-md max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Add New Recipe</h2>
+                    <button class="close-modal text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <form id="recipe-form">
+                    <input type="hidden" id="recipe-id">
+                    <div class="mb-4">
+                        <label for="recipe-name" class="block text-sm font-medium text-gray-700 mb-1">Recipe Name</label>
+                        <input type="text" id="recipe-name" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                    </div>
+                     <div class="mb-4">
+                        <label for="recipe-image" class="block text-sm font-medium text-gray-700 mb-1">Image (Optional)</label>
+                        <input type="file" id="recipe-image" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" accept="image/*">
+                        <img id="recipe-image-preview" src="" class="hidden mt-2 w-full rounded-md max-h-40 object-cover"/>
+                    </div>
+                    <div class="flex space-x-2 mb-4">
+                        <div class="w-1/2">
+                             <label for="recipe-prep-time" class="block text-sm font-medium text-gray-700 mb-1">Prep Time (min)</label>
+                            <input type="number" id="recipe-prep-time" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        </div>
+                         <div class="w-1/2">
+                             <label for="recipe-cook-time" class="block text-sm font-medium text-gray-700 mb-1">Cook Time (min)</label>
+                            <input type="number" id="recipe-cook-time" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        </div>
+                    </div>
+                     <div class="mb-4">
+                        <label for="recipe-ingredients" class="block text-sm font-medium text-gray-700 mb-1">Ingredients</label>
+                        <textarea id="recipe-ingredients" class="w-full px-3 py-2 border border-gray-300 rounded-md" rows="5" placeholder="List each ingredient on a new line"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="recipe-instructions" class="block text-sm font-medium text-gray-700 mb-1">Instructions</label>
+                        <textarea id="recipe-instructions" class="w-full px-3 py-2 border border-gray-300 rounded-md" rows="7" placeholder="List each step on a new line"></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-md font-medium">Save Recipe</button>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- Recipe View Modal -->
+        <div id="recipe-modal" class="recipe-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg p-6 w-11/12 max-w-md max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="recipe-title" class="text-2xl font-bold text-gray-800">Recipe</h2>
+                    <button class="close-modal text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="recipe-content">
+                    <!-- Recipe content will be injected here -->
+                </div>
+            </div>
+        </div>
+
 
         <div id="export-modal" class="export-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
             <div class="bg-white rounded-lg p-6 w-11/12 max-w-md">
@@ -406,13 +497,19 @@
             const addTimerModal = document.getElementById('add-timer-modal');
             const exportModal = document.getElementById('export-modal');
             const importModal = document.getElementById('import-modal');
+            const recipeModal = document.getElementById('recipe-modal');
+            const addRecipeModal = document.getElementById('add-recipe-modal');
             const closeModalBtns = document.querySelectorAll('.close-modal');
             const timerForm = document.getElementById('timer-form');
+            const recipeForm = document.getElementById('recipe-form');
             const addTimerBtn = document.getElementById('add-timer-btn');
+            const addRecipeBtn = document.getElementById('add-recipe-btn');
             const timerContainer = document.getElementById('timer-container');
+            const recipeContainer = document.getElementById('recipe-container');
             const noTimers = document.getElementById('no-timers');
+            const noRecipes = document.getElementById('no-recipes');
             const tempSlider = document.getElementById('temp-slider');
-            const tempValue = document.getElementById('temp-value');
+            const tempInput = document.getElementById('temp-input'); // MODIFIED
             const tempUnitToggle = document.getElementById('temp-unit-toggle');
             const searchInput = document.getElementById('search-input');
             const categoryBtns = document.querySelectorAll('.category-btn');
@@ -424,7 +521,6 @@
             const importDataTextarea = document.getElementById('import-data');
             const importFileInput = document.getElementById('import-file');
             const importBtnConfirm = document.getElementById('import-btn-confirm');
-            const homeBtn = document.getElementById('home-btn');
             const favoritesBtn = document.getElementById('favorites-btn');
             const toast = document.getElementById('toast');
             const toastMessage = document.getElementById('toast-message');
@@ -433,9 +529,21 @@
             const userInfoDiv = document.getElementById('user-info');
             const userPhoto = document.getElementById('user-photo');
             const timerIdInput = document.getElementById('timer-id');
-            const foodImageInput = document.getElementById('food-image');
-            const imagePreview = document.getElementById('image-preview');
-            const sortSelect = document.getElementById('sort-by-select'); // NEW
+            const sortSelect = document.getElementById('sort-by-select');
+            const linkedRecipeSelect = document.getElementById('linked-recipe');
+
+            // Recipe Form Elements
+            const recipeIdInput = document.getElementById('recipe-id');
+            const recipeImageInput = document.getElementById('recipe-image');
+            const recipeImagePreview = document.getElementById('recipe-image-preview');
+
+            // Page containers
+            const timersPage = document.getElementById('timers-page');
+            const recipesPage = document.getElementById('recipes-page');
+            
+            // Nav buttons
+            const timersNavBtn = document.getElementById('timers-nav-btn');
+            const recipesNavBtn = document.getElementById('recipes-nav-btn');
 
             const countdownDisplay = document.getElementById('countdown-display');
             const countdownMinutesInput = document.getElementById('countdown-minutes');
@@ -447,11 +555,13 @@
 
             // State
             let timers = [];
+            let recipes = [];
             let isCelsius = true;
             let currentCategory = 'all';
             let showingFavorites = false;
             let currentUser = null; 
-            let unsubscribe; 
+            let unsubscribeTimers; 
+            let unsubscribeRecipes;
 
             let countdownInterval;
             let countdownTotalSeconds = 0;
@@ -494,7 +604,8 @@
                     userInfoDiv.classList.add('flex');
                     userPhoto.src = user.photoURL;
                     
-                    if (unsubscribe) unsubscribe(); 
+                    if (unsubscribeTimers) unsubscribeTimers(); 
+                    if (unsubscribeRecipes) unsubscribeRecipes();
                     await migrateLocalToFirestore();
                     loadFromFirestore();
                     showToast(`Welcome, ${user.displayName}!`, 'success');
@@ -505,10 +616,13 @@
                     userInfoDiv.classList.add('hidden');
                     userInfoDiv.classList.remove('flex');
 
-                    if (unsubscribe) unsubscribe(); 
+                    if (unsubscribeTimers) unsubscribeTimers(); 
+                    if (unsubscribeRecipes) unsubscribeRecipes();
                     timers = []; 
+                    recipes = [];
                     loadFromLocalStorage(); 
                     renderTimers();
+                    renderRecipes();
                 }
             });
             
@@ -526,28 +640,36 @@
             
             // Event Listeners
             closeModalBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    addTimerModal.classList.add('hidden');
-                    exportModal.classList.add('hidden');
-                    importModal.classList.add('hidden');
+                btn.addEventListener('click', (e) => {
+                    e.currentTarget.closest('.fixed').classList.add('hidden');
                 });
             });
             
             addTimerBtn.addEventListener('click', () => {
                 timerForm.reset();
                 timerIdInput.value = '';
-                document.querySelector('#add-timer-modal h2').textContent = "Add New Timer";
-                imagePreview.src = '';
-                imagePreview.classList.add('hidden');
+                document.querySelector('#add-timer-modal h2').textContent = "Add New Time";
+                populateRecipeDropdown();
                 addTimerModal.classList.remove('hidden');
+            });
+
+            addRecipeBtn.addEventListener('click', () => {
+                recipeForm.reset();
+                recipeIdInput.value = '';
+                document.querySelector('#add-recipe-modal h2').textContent = "Add New Recipe";
+                recipeImagePreview.src = '';
+                recipeImagePreview.classList.add('hidden');
+                addRecipeModal.classList.remove('hidden');
             });
             
             timerForm.addEventListener('submit', handleSaveTimer);
+            recipeForm.addEventListener('submit', handleSaveRecipe);
             
-            tempSlider.addEventListener('input', updateTempValue);
+            tempSlider.addEventListener('input', () => tempInput.value = tempSlider.value);
+            tempInput.addEventListener('input', () => tempSlider.value = tempInput.value);
             tempUnitToggle.addEventListener('change', toggleTempUnit);
             searchInput.addEventListener('input', filterTimers);
-            sortSelect.addEventListener('change', filterTimers); // NEW
+            sortSelect.addEventListener('change', filterTimers);
             
             categoryBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -556,16 +678,13 @@
                     filterTimers();
                     categoryBtns.forEach(b => b.classList.remove('ring-2', 'ring-indigo-500'));
                     btn.classList.add('ring-2', 'ring-indigo-500');
-                    homeBtn.classList.add('text-indigo-600');
-                    homeBtn.classList.remove('text-gray-500');
-                    favoritesBtn.classList.remove('text-indigo-600');
-                    favoritesBtn.classList.add('text-gray-500');
                     timerContainer.scrollIntoView({ behavior: 'smooth' });
                 });
             });
             
             exportBtn.addEventListener('click', () => {
-                exportDataTextarea.value = JSON.stringify(timers, null, 2);
+                const dataToExport = { timers, recipes };
+                exportDataTextarea.value = JSON.stringify(dataToExport, null, 2);
                 exportModal.classList.remove('hidden');
             });
             
@@ -574,10 +693,11 @@
             });
             
             downloadJsonBtn.addEventListener('click', () => {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(timers));
+                const dataToExport = { timers, recipes };
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport));
                 const downloadAnchorNode = document.createElement('a');
                 downloadAnchorNode.setAttribute("href", dataStr);
-                downloadAnchorNode.setAttribute("download", "air_fryer_timers.json");
+                downloadAnchorNode.setAttribute("download", "air_fryer_data.json");
                 document.body.appendChild(downloadAnchorNode);
                 downloadAnchorNode.click();
                 downloadAnchorNode.remove();
@@ -592,40 +712,27 @@
             
             importBtnConfirm.addEventListener('click', handleImport);
 
-            homeBtn.addEventListener('click', () => {
-                showingFavorites = false;
-                currentCategory = 'all';
-                filterTimers();
-                categoryBtns.forEach(b => b.classList.remove('ring-2', 'ring-indigo-500'));
-                document.querySelector('.category-btn[data-category="all"]').classList.add('ring-2', 'ring-indigo-500');
-                homeBtn.classList.add('text-indigo-600');
-                homeBtn.classList.remove('text-gray-500');
-                favoritesBtn.classList.remove('text-indigo-600');
-                favoritesBtn.classList.add('text-gray-500');
-            });
+            timersNavBtn.addEventListener('click', () => switchPage('timers'));
+            recipesNavBtn.addEventListener('click', () => switchPage('recipes'));
             
             favoritesBtn.addEventListener('click', () => {
                 showingFavorites = true;
+                switchPage('timers');
                 filterTimers();
-                categoryBtns.forEach(b => b.classList.remove('ring-2', 'ring-indigo-500'));
-                favoritesBtn.classList.add('text-indigo-600');
-                favoritesBtn.classList.remove('text-gray-500');
-                homeBtn.classList.remove('text-indigo-600');
-                homeBtn.classList.add('text-gray-500');
             });
 
-            foodImageInput.addEventListener('change', () => {
-                const file = foodImageInput.files[0];
+            recipeImageInput.addEventListener('change', () => {
+                const file = recipeImageInput.files[0];
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        imagePreview.src = e.target.result;
-                        imagePreview.classList.remove('hidden');
+                        recipeImagePreview.src = e.target.result;
+                        recipeImagePreview.classList.remove('hidden');
                     };
                     reader.readAsDataURL(file);
                 } else {
-                    imagePreview.src = '';
-                    imagePreview.classList.add('hidden');
+                    recipeImagePreview.src = '';
+                    recipeImagePreview.classList.add('hidden');
                 }
             });
 
@@ -638,42 +745,26 @@
                 e.preventDefault();
                 const id = timerIdInput.value || Date.now().toString();
                 const isEditing = !!timerIdInput.value;
-
-                const toBase64 = file => new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = error => reject(error);
-                });
-
-                let imageUrl = '';
-                const imageFile = foodImageInput.files[0];
-
-                if (imageFile) {
-                    imageUrl = await toBase64(imageFile);
-                } else if (isEditing) {
-                    const existingTimer = timers.find(t => t.id === id);
-                    imageUrl = existingTimer?.imageUrl || '';
-                }
                 
                 const timerData = {
                     id: id,
                     name: document.getElementById('food-name').value,
-                    imageUrl: imageUrl,
                     category: document.getElementById('food-category').value,
                     foodState: document.querySelector('input[name="food-state"]:checked').value,
-                    temperature: parseInt(tempSlider.value),
+                    temperature: parseInt(tempInput.value), // MODIFIED: Read from input
                     tempUnit: isCelsius ? 'C' : 'F',
                     minutes: parseInt(document.getElementById('time-minutes').value) || 0,
                     seconds: parseInt(document.getElementById('time-seconds').value) || 0,
                     notes: document.getElementById('food-notes').value,
-                    favorite: isEditing ? (timers.find(t => t.id === id)?.favorite || false) : false
+                    favorite: isEditing ? (timers.find(t => t.id === id)?.favorite || false) : false,
+                    linkedRecipeId: linkedRecipeSelect.value
                 };
 
                 if (currentUser) {
                     try {
-                        await db.collection('users').doc(currentUser.uid).collection('timers').doc(id).set(timerData);
-                        showToast(`Timer ${isEditing ? 'updated' : 'added'} successfully!`);
+                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                        await db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('timers').doc(id).set(timerData);
+                        showToast(`Time ${isEditing ? 'updated' : 'added'} successfully!`);
                     } catch (err) {
                         showToast(`Error: ${err.message}`, 'error');
                     }
@@ -686,11 +777,67 @@
                     }
                     saveToLocalStorage();
                     renderTimers();
-                    showToast(`Timer ${isEditing ? 'updated' : 'added'} successfully!`);
+                    showToast(`Time ${isEditing ? 'updated' : 'added'} successfully!`);
                 }
                 
                 addTimerModal.classList.add('hidden');
                 timerForm.reset();
+            }
+
+            async function handleSaveRecipe(e) {
+                e.preventDefault();
+                const id = recipeIdInput.value || Date.now().toString();
+                const isEditing = !!recipeIdInput.value;
+
+                 const toBase64 = file => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                });
+
+                let imageUrl = '';
+                const imageFile = recipeImageInput.files[0];
+
+                if (imageFile) {
+                    imageUrl = await toBase64(imageFile);
+                } else if (isEditing) {
+                    const existingRecipe = recipes.find(r => r.id === id);
+                    imageUrl = existingRecipe?.imageUrl || '';
+                }
+
+                const recipeData = {
+                    id: id,
+                    name: document.getElementById('recipe-name').value,
+                    imageUrl: imageUrl,
+                    prepTime: document.getElementById('recipe-prep-time').value,
+                    cookTime: document.getElementById('recipe-cook-time').value,
+                    ingredients: document.getElementById('recipe-ingredients').value,
+                    instructions: document.getElementById('recipe-instructions').value,
+                };
+
+                if (currentUser) {
+                    try {
+                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                        await db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('recipes').doc(id).set(recipeData);
+                        showToast(`Recipe ${isEditing ? 'updated' : 'added'} successfully!`);
+                    } catch (err) {
+                        showToast(`Error: ${err.message}`, 'error');
+                    }
+                } else {
+                     if (isEditing) {
+                        const index = recipes.findIndex(r => r.id.toString() === id);
+                        if (index !== -1) recipes[index] = recipeData;
+                    } else {
+                        recipes.unshift(recipeData);
+                    }
+                    saveToLocalStorage();
+                    renderRecipes();
+                    showToast(`Recipe ${isEditing ? 'updated' : 'added'} successfully!`);
+                }
+
+                addRecipeModal.classList.add('hidden');
+                recipeForm.reset();
             }
 
             function handleImport() {
@@ -698,26 +845,37 @@
                  const processData = (dataString) => {
                     try {
                         importedData = JSON.parse(dataString);
-                        if (!Array.isArray(importedData)) {
+                        if (typeof importedData !== 'object' || (!importedData.timers && !importedData.recipes)) {
                              showToast("Invalid data format!", "error");
                              return;
                         }
 
+                        const importedTimers = importedData.timers || [];
+                        const importedRecipes = importedData.recipes || [];
+
                         if (currentUser) {
+                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                             const batch = db.batch();
-                            const collectionRef = db.collection('users').doc(currentUser.uid).collection('timers');
-                            importedData.forEach(timer => {
-                                const docRef = collectionRef.doc(timer.id.toString());
-                                batch.set(timer);
+                            const timersRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('timers');
+                            importedTimers.forEach(timer => {
+                                const docRef = timersRef.doc(timer.id.toString());
+                                batch.set(docRef, timer);
+                            });
+                             const recipesRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('recipes');
+                            importedRecipes.forEach(recipe => {
+                                const docRef = recipesRef.doc(recipe.id.toString());
+                                batch.set(docRef, recipe);
                             });
                             batch.commit().then(() => {
                                 showToast("Data imported to your account!");
                                 importModal.classList.add('hidden');
                             }).catch(err => showToast(`Import failed: ${err.message}`, 'error'));
                         } else {
-                            timers = importedData;
+                            timers = importedTimers;
+                            recipes = importedRecipes;
                             saveToLocalStorage();
                             renderTimers();
+                            renderRecipes();
                             importModal.classList.add('hidden');
                             showToast("Data imported successfully!");
                         }
@@ -739,47 +897,45 @@
                 }
             }
             
-            function updateTempValue() {
-                const temp = tempSlider.value;
-                tempValue.textContent = `${temp}°${isCelsius ? 'C' : 'F'}`;
+            function updateTempDisplay() {
+                 tempInput.value = tempSlider.value;
             }
             
             function toggleTempUnit() {
                 isCelsius = !tempUnitToggle.checked;
-                const currentTemp = parseInt(tempSlider.value);
+                const currentTemp = parseInt(tempInput.value);
                 let newTemp;
 
                 if (isCelsius) {
+                    // F to C
                     newTemp = Math.round((currentTemp - 32) * 5 / 9);
                     tempSlider.min = "160";
                     tempSlider.max = "230";
                     tempSlider.value = Math.max(160, Math.min(230, newTemp));
                 } else {
+                    // C to F
                     newTemp = Math.round(currentTemp * 9 / 5 + 32);
                     tempSlider.min = "320";
                     tempSlider.max = "450";
                     tempSlider.value = Math.max(320, Math.min(450, newTemp));
                 }
-                updateTempValue();
+                updateTempDisplay();
             }
             
             function filterTimers() {
-                let filteredTimers = [...timers]; // Create a copy to avoid sorting the original array
+                let filteredTimers = [...timers];
                 const searchTerm = searchInput.value.toLowerCase();
                 
-                // 1. Filter by category/favorites
                 if (showingFavorites) {
                     filteredTimers = filteredTimers.filter(timer => timer.favorite);
                 } else if (currentCategory !== 'all') {
                     filteredTimers = filteredTimers.filter(timer => timer.category === currentCategory);
                 }
                 
-                // 2. Filter by search term
                 if (searchTerm) {
                     filteredTimers = filteredTimers.filter(timer => timer.name.toLowerCase().includes(searchTerm));
                 }
 
-                // 3. Sort the filtered results
                 const sortBy = sortSelect.value;
                 switch(sortBy) {
                     case 'latest':
@@ -823,8 +979,6 @@
                     const card = document.createElement('div');
                     card.className = 'card bg-white rounded-lg shadow overflow-hidden border border-gray-100';
                     card.innerHTML = `
-                        ${timer.imageUrl ? `<img src="${timer.imageUrl}" alt="${timer.name}" class="w-full h-40 object-cover">` : ''}
-                        
                         <div class="p-4">
                             <div class="flex justify-between items-start">
                                 <div>
@@ -841,6 +995,12 @@
                             </div>
                             ${timer.notes ? `<p class="text-gray-600 text-sm mt-2 border-t border-gray-100 pt-2">${timer.notes}</p>` : ''}
                             <div class="flex justify-end items-center mt-3">
+                                ${timer.linkedRecipeId ? `<button class="text-green-500 mr-2 view-recipe-btn" title="View Linked Recipe" data-id="${timer.linkedRecipeId}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>` : ''}
                                 <button class="text-indigo-500 mr-2 start-main-timer" title="Start this timer" data-minutes="${timer.minutes}" data-seconds="${timer.seconds || 0}">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" /></svg>
                                 </button>
@@ -862,6 +1022,13 @@
                         const seconds = btn.dataset.seconds;
                         loadAndStartCountdown(minutes, seconds);
                     });
+                     const viewRecipeBtn = card.querySelector('.view-recipe-btn');
+                     if(viewRecipeBtn) {
+                        viewRecipeBtn.addEventListener('click', () => {
+                            const recipe = recipes.find(r => r.id === timer.linkedRecipeId);
+                            if(recipe) viewRecipe(recipe);
+                        });
+                     }
                 });
             }
             
@@ -880,7 +1047,8 @@
                 if (confirm("Are you sure you want to delete this timer?")) {
                     if (currentUser) {
                         try {
-                            await db.collection('users').doc(currentUser.uid).collection('timers').doc(id.toString()).delete();
+                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                            await db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('timers').doc(id.toString()).delete();
                             showToast("Timer deleted successfully!");
                         } catch(err) { showToast(`Error: ${err.message}`, 'error'); }
                     } else {
@@ -898,23 +1066,55 @@
                 document.getElementById('food-name').value = timerToEdit.name;
                 document.getElementById('food-category').value = timerToEdit.category;
                 document.querySelector(`input[name="food-state"][value="${timerToEdit.foodState}"]`).checked = true;
-                tempSlider.value = timerToEdit.temperature;
+                
+                tempInput.value = timerToEdit.temperature; // MODIFIED
+                tempSlider.value = timerToEdit.temperature; // MODIFIED
+
                 tempUnitToggle.checked = timerToEdit.tempUnit === 'F';
                 isCelsius = timerToEdit.tempUnit === 'C';
-                updateTempValue();
+                
                 document.getElementById('time-minutes').value = timerToEdit.minutes;
                 document.getElementById('time-seconds').value = timerToEdit.seconds || '';
                 document.getElementById('food-notes').value = timerToEdit.notes || '';
-
-                if (timerToEdit.imageUrl) {
-                    imagePreview.src = timerToEdit.imageUrl;
-                    imagePreview.classList.remove('hidden');
-                } else {
-                    imagePreview.src = '';
-                    imagePreview.classList.add('hidden');
-                }
+                populateRecipeDropdown(timerToEdit.linkedRecipeId);
 
                 addTimerModal.classList.remove('hidden');
+            }
+
+            // NEW: Function to view recipe
+            function viewRecipe(recipe) {
+                const recipeTitle = document.getElementById('recipe-title');
+                const recipeContent = document.getElementById('recipe-content');
+                
+                recipeTitle.textContent = recipe.name;
+
+                // Helper to format text with line breaks
+                const formatText = (text) => text ? text.replace(/\n/g, '<br>') : 'Not provided';
+
+                recipeContent.innerHTML = `
+                    ${recipe.imageUrl ? `<img src="${recipe.imageUrl}" alt="${recipe.name}" class="w-full h-40 object-cover rounded-md mb-4">` : ''}
+                    <div class="space-y-4">
+                        <div class="flex justify-around text-center">
+                            <div>
+                                <p class="text-sm text-gray-500">Prep Time</p>
+                                <p class="font-semibold">${recipe.prepTime ? recipe.prepTime + ' min' : 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500">Cook Time</p>
+                                <p class="font-semibold">${recipe.cookTime ? recipe.cookTime + ' min' : 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-2 border-b pb-1">Ingredients</h3>
+                            <div class="text-gray-700 text-sm">${formatText(recipe.ingredients)}</div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-2 border-b pb-1">Instructions</h3>
+                            <div class="text-gray-700 text-sm">${formatText(recipe.instructions)}</div>
+                        </div>
+                    </div>
+                `;
+                recipeModal.classList.remove('hidden');
             }
             
             async function toggleFavorite(id) {
@@ -924,7 +1124,8 @@
 
                 if (currentUser) {
                     try {
-                        await db.collection('users').doc(currentUser.uid).collection('timers').doc(id.toString()).update({ favorite: newFavoriteState });
+                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                        await db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('timers').doc(id.toString()).update({ favorite: newFavoriteState });
                     } catch(err) { showToast(`Error: ${err.message}`, 'error'); }
                 } else {
                     timer.favorite = newFavoriteState;
@@ -994,56 +1195,72 @@
                 countdownMinutesInput.value = minutes;
                 countdownSecondsInput.value = seconds;
                 startCountdown();
-                // Scroll to the top where the timer is.
                 document.getElementById('countdown-timer-section').scrollIntoView({ behavior: 'smooth' });
             }
             
             function saveToLocalStorage() {
                 if (currentUser) return; 
-                localStorage.setItem('airFryerTimers', JSON.stringify(timers));
+                const data = { timers, recipes };
+                localStorage.setItem('airFryerData', JSON.stringify(data));
             }
             
             function loadFromLocalStorage() {
-                const savedTimers = localStorage.getItem('airFryerTimers');
-                if (savedTimers) {
-                    timers = JSON.parse(savedTimers);
+                const savedData = localStorage.getItem('airFryerData');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    timers = data.timers || [];
+                    recipes = data.recipes || [];
                 } else {
                     timers = getSampleTimers(); 
+                    recipes = [];
                 }
                 renderTimers();
+                renderRecipes();
             }
 
             function loadFromFirestore() {
                 if (!currentUser) return;
-                const collectionRef = db.collection('users').doc(currentUser.uid).collection('timers');
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const timersRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('timers');
+                const recipesRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('recipes');
                 
-                // MODIFIED: Removed orderBy('name') to allow for custom client-side sorting
-                unsubscribe = collectionRef.onSnapshot(snapshot => {
+                unsubscribeTimers = timersRef.onSnapshot(snapshot => {
                     timers = snapshot.docs.map(doc => doc.data());
-                    renderTimers(); // Will now filter and sort
-                }, error => {
-                    console.error("Error fetching timers:", error);
-                    showToast("Could not load timers from the cloud.", "error");
-                });
+                    renderTimers();
+                }, error => console.error("Error fetching timers:", error));
+
+                unsubscribeRecipes = recipesRef.onSnapshot(snapshot => {
+                    recipes = snapshot.docs.map(doc => doc.data());
+                    renderRecipes();
+                }, error => console.error("Error fetching recipes:", error));
             }
 
             async function migrateLocalToFirestore() {
-                const localData = localStorage.getItem('airFryerTimers');
+                const localData = localStorage.getItem('airFryerData');
                 if (!localData) return; 
 
-                const collectionRef = db.collection('users').doc(currentUser.uid).collection('timers');
-                const snapshot = await collectionRef.limit(1).get();
+                const data = JSON.parse(localData);
+                const localTimers = data.timers || [];
+                const localRecipes = data.recipes || [];
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+                const timersRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('timers');
+                const snapshot = await timersRef.limit(1).get();
 
                 if (snapshot.empty) { 
                     console.log("Cloud is empty, migrating local data...");
-                    const localTimers = JSON.parse(localData);
                     const batch = db.batch();
                     localTimers.forEach(timer => {
-                        const docRef = collectionRef.doc(timer.id.toString());
+                        const docRef = timersRef.doc(timer.id.toString());
                         batch.set(docRef, timer);
                     });
+                     const recipesRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('recipes');
+                     localRecipes.forEach(recipe => {
+                        const docRef = recipesRef.doc(recipe.id.toString());
+                        batch.set(docRef, recipe);
+                    });
                     await batch.commit();
-                    localStorage.removeItem('airFryerTimers'); 
+                    localStorage.removeItem('airFryerData'); 
                     showToast('Your local data has been moved to your account!', 'success');
                 }
             }
@@ -1057,12 +1274,111 @@
             
             function getSampleTimers() {
                 return [
-                    { id: 1, name: "Chicken Breast (6 oz)", imageUrl: "https://placehold.co/600x400/f97316/ffffff?text=Chicken", category: "chicken", foodState: "fresh", temperature: 190, tempUnit: "C", minutes: 15, seconds: 0, notes: "Flip halfway through.", favorite: false },
-                    { id: 2, name: "Ribeye Steak (1 inch)", imageUrl: "https://placehold.co/600x400/ef4444/ffffff?text=Steak", category: "beef", foodState: "fresh", temperature: 200, tempUnit: "C", minutes: 12, seconds: 0, notes: "For medium rare.", favorite: true },
-                    { id: 6, name: "Brussels Sprouts", imageUrl: "https://placehold.co/600x400/22c55e/ffffff?text=Veggies", category: "vegetables", foodState: "fresh", temperature: 190, tempUnit: "C", minutes: 10, seconds: 0, notes: "Toss with olive oil.", favorite: true },
-                    { id: 10, name: "Frozen Mozzarella Sticks", imageUrl: "", category: "frozen", foodState: "frozen", temperature: 190, tempUnit: "C", minutes: 6, seconds: 0, notes: "No need to thaw.", favorite: false }
+                    { id: 1, name: "Chicken Breast (6 oz)", category: "chicken", foodState: "fresh", temperature: 190, tempUnit: "C", minutes: 15, seconds: 0, notes: "Flip halfway through.", favorite: false },
+                    { id: 2, name: "Ribeye Steak (1 inch)", category: "beef", foodState: "fresh", temperature: 200, tempUnit: "C", minutes: 12, seconds: 0, notes: "For medium rare.", favorite: true },
+                    { id: 6, name: "Brussels Sprouts", category: "vegetables", foodState: "fresh", temperature: 190, tempUnit: "C", minutes: 10, seconds: 0, notes: "Toss with olive oil.", favorite: true },
+                    { id: 10, name: "Frozen Mozzarella Sticks", category: "frozen", foodState: "frozen", temperature: 190, tempUnit: "C", minutes: 6, seconds: 0, notes: "No need to thaw.", favorite: false }
                 ];
             }
+
+            function switchPage(page) {
+                if (page === 'timers') {
+                    timersPage.classList.remove('hidden');
+                    recipesPage.classList.add('hidden');
+                    timersNavBtn.classList.add('text-indigo-600');
+                    timersNavBtn.classList.remove('text-gray-500');
+                    recipesNavBtn.classList.remove('text-indigo-600');
+                    recipesNavBtn.classList.add('text-gray-500');
+                } else {
+                    timersPage.classList.add('hidden');
+                    recipesPage.classList.remove('hidden');
+                    timersNavBtn.classList.remove('text-indigo-600');
+                    timersNavBtn.classList.add('text-gray-500');
+                    recipesNavBtn.classList.add('text-indigo-600');
+                    recipesNavBtn.classList.remove('text-gray-500');
+                }
+            }
+
+            function renderRecipes() {
+                if (recipes.length === 0) {
+                    recipeContainer.innerHTML = '';
+                    recipeContainer.appendChild(noRecipes);
+                    noRecipes.classList.remove('hidden');
+                    return;
+                }
+                noRecipes.classList.add('hidden');
+                recipeContainer.innerHTML = '';
+                recipes.forEach(recipe => {
+                    const card = document.createElement('div');
+                    card.className = 'card bg-white rounded-lg shadow overflow-hidden border border-gray-100';
+                    card.innerHTML = `
+                        ${recipe.imageUrl ? `<img src="${recipe.imageUrl}" alt="${recipe.name}" class="w-full h-40 object-cover">` : ''}
+                        <div class="p-4">
+                             <h3 class="font-bold text-lg text-gray-800">${recipe.name}</h3>
+                             <div class="flex justify-end items-center mt-3">
+                                <button class="text-green-500 mr-2 view-recipe-btn" title="View Recipe" data-id="${recipe.id}">View</button>
+                                <button class="text-gray-500 mr-2 edit-recipe-btn" data-id="${recipe.id}" title="Edit">Edit</button>
+                                <button class="text-red-500 delete-recipe-btn" data-id="${recipe.id}" title="Delete">Delete</button>
+                             </div>
+                        </div>
+                    `;
+                    recipeContainer.appendChild(card);
+                    card.querySelector('.view-recipe-btn').addEventListener('click', () => viewRecipe(recipe));
+                    card.querySelector('.edit-recipe-btn').addEventListener('click', () => editRecipe(recipe));
+                    card.querySelector('.delete-recipe-btn').addEventListener('click', () => deleteRecipe(recipe.id));
+                });
+            }
+
+            function editRecipe(recipeToEdit) {
+                 document.querySelector('#add-recipe-modal h2').textContent = "Edit Recipe";
+                recipeIdInput.value = recipeToEdit.id;
+                document.getElementById('recipe-name').value = recipeToEdit.name;
+                document.getElementById('recipe-prep-time').value = recipeToEdit.prepTime || '';
+                document.getElementById('recipe-cook-time').value = recipeToEdit.cookTime || '';
+                document.getElementById('recipe-ingredients').value = recipeToEdit.ingredients || '';
+                document.getElementById('recipe-instructions').value = recipeToEdit.instructions || '';
+                
+                if (recipeToEdit.imageUrl) {
+                    recipeImagePreview.src = recipeToEdit.imageUrl;
+                    recipeImagePreview.classList.remove('hidden');
+                } else {
+                    recipeImagePreview.src = '';
+                    recipeImagePreview.classList.add('hidden');
+                }
+
+                addRecipeModal.classList.remove('hidden');
+            }
+
+             async function deleteRecipe(id) {
+                if (confirm("Are you sure you want to delete this recipe?")) {
+                    if (currentUser) {
+                        try {
+                             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                            await db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('recipes').doc(id.toString()).delete();
+                            showToast("Recipe deleted successfully!");
+                        } catch(err) { showToast(`Error: ${err.message}`, 'error'); }
+                    } else {
+                        recipes = recipes.filter(r => r.id.toString() !== id.toString());
+                        saveToLocalStorage();
+                        renderRecipes();
+                        showToast("Recipe deleted successfully!");
+                    }
+                }
+            }
+
+            function populateRecipeDropdown(selectedId) {
+                linkedRecipeSelect.innerHTML = '<option value="">None</option>';
+                recipes.forEach(recipe => {
+                    const option = document.createElement('option');
+                    option.value = recipe.id;
+                    option.textContent = recipe.name;
+                    if(recipe.id === selectedId) {
+                        option.selected = true;
+                    }
+                    linkedRecipeSelect.appendChild(option);
+                });
+            }
+
         });
     </script>
 </body>
