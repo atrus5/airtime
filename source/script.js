@@ -785,10 +785,10 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function getSampleTimers() {
         return [
-            { id: 1, name: "Chicken Breast (6 oz)", imageUrl: "https://placehold.co/600x400/f97316/ffffff?text=Chicken", category: "chicken", foodState: "fresh", temperature: 190, tempUnit: "C", minutes: 15, seconds: 0, notes: "Flip halfway through.", favorite: false },
-            { id: 2, name: "Ribeye Steak (1 inch)", imageUrl: "https://placehold.co/600x400/ef4444/ffffff?text=Steak", category: "beef", foodState: "fresh", temperature: 200, tempUnit: "C", minutes: 12, seconds: 0, notes: "For medium rare.", favorite: true },
-            { id: 6, name: "Brussels Sprouts", imageUrl: "https://placehold.co/600x400/22c55e/ffffff?text=Veggies", category: "vegetables", foodState: "fresh", temperature: 190, tempUnit: "C", minutes: 10, seconds: 0, notes: "Toss with olive oil.", favorite: true },
-            { id: 10, name: "Frozen Mozzarella Sticks", imageUrl: "https://placehold.co/600x400/eab308/ffffff?text=Frozen+Food", category: "frozen", foodState: "frozen", temperature: 190, tempUnit: "C", minutes: 6, seconds: 0, notes: "No need to thaw.", favorite: false }
+            { id: 1, name: "Chicken Breast (6 oz)", category: "chicken", foodState: "fresh", temperature: 190, tempUnit: "C", minutes: 15, seconds: 0, notes: "Flip halfway through.", favorite: false },
+            { id: 2, name: "Ribeye Steak (1 inch)", category: "beef", foodState: "fresh", temperature: 200, tempUnit: "C", minutes: 12, seconds: 0, notes: "For medium rare.", favorite: true },
+            { id: 6, name: "Brussels Sprouts", category: "vegetables", foodState: "fresh", temperature: 190, tempUnit: "C", minutes: 10, seconds: 0, notes: "Toss with olive oil.", favorite: true },
+            { id: 10, name: "Frozen Mozzarella Sticks", category: "frozen", foodState: "frozen", temperature: 190, tempUnit: "C", minutes: 6, seconds: 0, notes: "No need to thaw.", favorite: false }
         ];
     }
 
