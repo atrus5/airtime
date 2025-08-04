@@ -38,7 +38,7 @@
         .card { transition: all 0.3s ease; }
         .card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
         .dark .card:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2); }
-        .add-timer-modal, .food-category-modal, .export-modal { transition: opacity 0.3s ease; }
+        .add-timer-modal, .food-category-modal, .export-modal, .auth-modal { transition: opacity 0.3s ease; }
         .temp-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 25px; height: 25px; border-radius: 50%; background: #4f46e5; cursor: pointer; }
         .temp-slider::-moz-range-thumb { width: 25px; height: 25px; border-radius: 50%; background: #4f46e5; cursor: pointer; }
         .category-icon { width: 40px; height: 40px; }
@@ -54,9 +54,10 @@
             <h1 class="text-xl font-bold">Air Fryer Times</h1>
             <div class="flex items-center space-x-2">
                 <div id="auth-container" class="flex items-center space-x-2">
-                    <button id="google-signin-btn" class="bg-white text-indigo-600 px-3 py-1 rounded-md text-sm font-medium">Sign In</button>
+                    <button id="open-auth-modal-btn" class="bg-white text-indigo-600 px-3 py-1 rounded-md text-sm font-medium">Sign In</button>
                     <div id="user-info" class="hidden items-center space-x-2">
                         <img id="user-photo" class="h-8 w-8 rounded-full" src="" alt="User photo">
+                        <span id="user-display-name" class="text-sm font-medium hidden"></span>
                         <button id="signout-btn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium">Logout</button>
                     </div>
                 </div>
@@ -121,6 +122,41 @@
         </nav>
 
         <!-- Modals -->
+        <div id="auth-modal" class="auth-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white dark:bg-slate-800 rounded-lg p-6 w-11/12 max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="auth-modal-title" class="text-xl font-bold text-gray-800 dark:text-slate-100">Sign In</h2>
+                    <button class="close-modal text-gray-500 dark:text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                </div>
+
+                <!-- Sign In View -->
+                <div id="signin-view">
+                    <form id="signin-form">
+                        <div class="mb-4"><label for="signin-email" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Email</label><input type="email" id="signin-email" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" required></div>
+                        <div class="mb-4"><label for="signin-password" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Password</label><input type="password" id="signin-password" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" required></div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md font-medium hover:bg-indigo-700 dark:hover:bg-indigo-500">Sign In</button>
+                    </form>
+                    <div class="my-4 text-center text-gray-500 dark:text-slate-400">or</div>
+                    <button id="google-signin-btn-modal" class="w-full bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-200 py-2 rounded-md font-medium flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v8.51h13.04c-.6 2.76-2.31 5.1-4.79 6.69l7.98 6.19C45.27 39.73 48 32.64 48 24c0-.66-.07-1.31-.18-1.95z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.98-6.19c-2.18 1.45-4.96 2.31-8.02 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
+                        Sign In with Google
+                    </button>
+                    <p class="mt-4 text-center text-sm text-gray-600 dark:text-slate-300">Don't have an account? <button id="show-signup-btn" class="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">Sign Up</button></p>
+                </div>
+
+                <!-- Sign Up View -->
+                <div id="signup-view" class="hidden">
+                    <form id="signup-form">
+                        <div class="mb-4"><label for="signup-name" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Display Name</label><input type="text" id="signup-name" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" required></div>
+                        <div class="mb-4"><label for="signup-email" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Email</label><input type="email" id="signup-email" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" required></div>
+                        <div class="mb-4"><label for="signup-password" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Password</label><input type="password" id="signup-password" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" required></div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md font-medium hover:bg-indigo-700 dark:hover:bg-indigo-500">Sign Up</button>
+                    </form>
+                    <p class="mt-4 text-center text-sm text-gray-600 dark:text-slate-300">Already have an account? <button id="show-signin-btn" class="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">Sign In</button></p>
+                </div>
+            </div>
+        </div>
+
         <div id="add-timer-modal" class="add-timer-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50"><div class="bg-white dark:bg-slate-800 rounded-lg p-6 w-11/12 max-w-md max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold text-gray-800 dark:text-slate-100">Add New Timer</h2><button class="close-modal text-gray-500 dark:text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div><form id="timer-form"><input type="hidden" id="timer-id"><div class="mb-4"><label for="food-name" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Food Item</label><input type="text" id="food-name" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="e.g. Chicken Breast, Steak" required></div><div class="mb-4"><label for="food-image" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Image (Optional)</label><input type="file" id="food-image" class="w-full text-sm text-gray-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-slate-700 file:text-indigo-700 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-slate-600" accept="image/*"><img id="image-preview" src="" class="hidden mt-2 w-full rounded-md max-h-40 object-cover"/></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Category</label><select id="food-category" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white"><option value="beef">Beef</option><option value="chicken">Chicken</option><option value="fish">Fish</option><option value="pork">Pork</option><option value="vegetables">Vegetables</option><option value="frozen">Frozen Foods</option><option value="other">Other</option></select></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Food State</label><div class="flex space-x-4 text-gray-800 dark:text-slate-200"><label class="flex items-center"><input type="radio" name="food-state" value="fresh" class="mr-2" checked><span>Fresh</span></label><label class="flex items-center"><input type="radio" name="food-state" value="frozen" class="mr-2"><span>Frozen</span></label></div></div><div class="mb-4"><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Temperature</label><div class="flex items-center mb-2"><input type="range" id="temp-slider" min="160" max="400" value="180" class="w-full temp-slider"><span id="temp-value" class="ml-2 w-16 text-center dark:text-slate-200">180°C</span></div><div class="flex justify-end"><label class="inline-flex items-center cursor-pointer"><span class="mr-2 text-sm text-gray-700 dark:text-slate-300">°C</span><div class="relative"><input type="checkbox" id="temp-unit-toggle" class="sr-only toggle-checked"><div class="w-10 h-5 bg-gray-200 dark:bg-slate-600 rounded-full shadow-inner"></div><div class="toggle-dot absolute w-3 h-3 bg-white rounded-full shadow left-1 top-1 transition"></div></div><span class="ml-2 text-sm text-gray-700 dark:text-slate-300">°F</span></label></div></div><div class="mb-6"><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Cooking Time</label><div class="flex space-x-2"><div class="w-1/2"><input type="number" id="time-minutes" min="0" max="59" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Min" required><label class="text-xs text-gray-500 dark:text-slate-400 mt-1 block">Minutes</label></div><div class="w-1/2"><input type="number" id="time-seconds" min="0" max="59" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder="Sec"><label class="text-xs text-gray-500 dark:text-slate-400 mt-1 block">Seconds</label></div></div></div><div class="mb-4"><label for="food-notes" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Notes (Optional)</label><textarea id="food-notes" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-slate-700 dark:border-slate-600 dark:text-white" rows="2" placeholder="Any special instructions or notes"></textarea></div><button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md font-medium hover:bg-indigo-700 dark:hover:bg-indigo-500">Save Timer</button></form></div></div>
         <div id="export-modal" class="export-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50"><div class="bg-white dark:bg-slate-800 rounded-lg p-6 w-11/12 max-w-md"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold text-gray-800 dark:text-slate-100">Export Your Data</h2><button class="close-modal text-gray-500 dark:text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div><p class="mb-4 text-gray-600 dark:text-slate-300">Save your air fryer timers to your device.</p><div class="mb-4"><button id="download-json-btn" class="w-full bg-indigo-600 text-white py-2 rounded-md font-medium mb-2">Download as JSON</button><button id="copy-json-btn" class="w-full border border-indigo-600 text-indigo-600 dark:text-indigo-300 dark:border-indigo-400 py-2 rounded-md font-medium">Copy to Clipboard</button></div><div class="mt-4"><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Your Data (JSON format)</label><textarea id="export-data" class="w-full px-3 py-2 border border-gray-300 rounded-md h-32 text-xs font-mono dark:bg-slate-700 dark:border-slate-600 dark:text-white" readonly></textarea></div></div></div>
         <div id="import-modal" class="export-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50"><div class="bg-white dark:bg-slate-800 rounded-lg p-6 w-11/12 max-w-md"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold text-gray-800 dark:text-slate-100">Import Your Data</h2><button class="close-modal text-gray-500 dark:text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div><p class="mb-4 text-gray-600 dark:text-slate-300">Restore your timers. This will overwrite current data.</p><div class="mb-4"><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Upload JSON File</label><input type="file" id="import-file" class="w-full text-sm text-gray-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 dark:file:bg-slate-700 file:text-indigo-700 dark:file:text-indigo-300 hover:file:bg-indigo-100 dark:hover:file:bg-slate-600" accept=".json"></div><div class="mb-4"><p class="text-sm text-gray-500 dark:text-slate-400 mb-2">Or paste your JSON data below:</p><textarea id="import-data" class="w-full px-3 py-2 border border-gray-300 rounded-md h-32 text-xs font-mono dark:bg-slate-700 dark:border-slate-600 dark:text-white" placeholder='Paste your JSON data here...'></textarea></div><button id="import-btn-confirm" class="w-full bg-indigo-600 text-white py-2 rounded-md font-medium">Import Data</button></div></div>
@@ -146,7 +182,6 @@
             }
         }
         
-        // This ensures the icon is correct on initial load.
         applyTheme(localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
 
         if (themeToggleBtn) {
@@ -179,7 +214,17 @@
             console.error("Firebase initialization failed:", error);
         }
 
-        // --- DOM ELEMENT REFERENCES (Remaining) ---
+        // --- DOM ELEMENT REFERENCES ---
+        const authModal = document.getElementById('auth-modal');
+        const openAuthModalBtn = document.getElementById('open-auth-modal-btn');
+        const signinView = document.getElementById('signin-view');
+        const signupView = document.getElementById('signup-view');
+        const showSignupBtn = document.getElementById('show-signup-btn');
+        const showSigninBtn = document.getElementById('show-signin-btn');
+        const signinForm = document.getElementById('signin-form');
+        const signupForm = document.getElementById('signup-form');
+        const googleSigninBtnModal = document.getElementById('google-signin-btn-modal');
+        const userDisplayName = document.getElementById('user-display-name');
         const addTimerModal = document.getElementById('add-timer-modal');
         const exportModal = document.getElementById('export-modal');
         const importModal = document.getElementById('import-modal');
@@ -205,7 +250,6 @@
         const favoritesBtn = document.getElementById('favorites-btn');
         const toast = document.getElementById('toast');
         const toastMessage = document.getElementById('toast-message');
-        const googleSigninBtn = document.getElementById('google-signin-btn');
         const signoutBtn = document.getElementById('signout-btn');
         const userInfoDiv = document.getElementById('user-info');
         const userPhoto = document.getElementById('user-photo');
@@ -235,40 +279,32 @@
 
         // --- FUNCTION DEFINITIONS ---
         function initAudio() { if (!audioCtx) { audioCtx = new(window.AudioContext || window.webkitAudioContext)(); } }
-        
-        function beep(times = 5, duration = 400, delay = 150) { 
-            if (!audioCtx) return; 
-            let time = audioCtx.currentTime; 
-            for (let i = 0; i < times; i++) { 
-                const o = audioCtx.createOscillator(), g = audioCtx.createGain(); 
-                o.connect(g); 
-                g.connect(audioCtx.destination); 
-                o.type = 'sine'; 
-                o.frequency.setValueAtTime(880, time); 
-                g.gain.setValueAtTime(0.8, time); 
-                g.gain.exponentialRampToValueAtTime(0.0001, time + duration / 1000); 
-                o.start(time); 
-                o.stop(time + duration / 1000); 
-                time += (duration + delay) / 1000; 
-            } 
-        }
+        function beep(times = 5, duration = 400, delay = 150) { if (!audioCtx) return; let time = audioCtx.currentTime; for (let i = 0; i < times; i++) { const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.type = 'sine'; o.frequency.setValueAtTime(880, time); g.gain.setValueAtTime(0.8, time); g.gain.exponentialRampToValueAtTime(0.0001, time + duration / 1000); o.start(time); o.stop(time + duration / 1000); time += (duration + delay) / 1000; } }
         document.body.addEventListener('click', initAudio, { once: true });
 
         if (auth) {
             auth.onAuthStateChanged(async user => {
                 if (user) {
                     currentUser = user;
-                    googleSigninBtn.classList.add('hidden');
+                    openAuthModalBtn.classList.add('hidden');
                     userInfoDiv.classList.remove('hidden');
                     userInfoDiv.classList.add('flex');
-                    userPhoto.src = user.photoURL;
+                    if(user.photoURL) {
+                        userPhoto.src = user.photoURL;
+                        userPhoto.classList.remove('hidden');
+                        userDisplayName.classList.add('hidden');
+                    } else {
+                        userPhoto.classList.add('hidden');
+                        userDisplayName.textContent = user.displayName;
+                        userDisplayName.classList.remove('hidden');
+                    }
                     if (unsubscribe) unsubscribe();
                     await migrateLocalToFirestore();
                     loadFromFirestore();
-                    showToast(`Welcome, ${user.displayName}!`, 'success');
+                    showToast(`Welcome, ${user.displayName || 'friend'}!`, 'success');
                 } else {
                     currentUser = null;
-                    googleSigninBtn.classList.remove('hidden');
+                    openAuthModalBtn.classList.remove('hidden');
                     userInfoDiv.classList.add('hidden');
                     userInfoDiv.classList.remove('flex');
                     if (unsubscribe) unsubscribe();
@@ -277,15 +313,52 @@
                     renderTimers();
                 }
             });
-            googleSigninBtn.addEventListener('click', () => { auth.signInWithPopup(googleProvider).catch(err => { console.error("Sign in error", err); showToast(`Error: ${err.message}`, 'error'); }); });
+            
+            googleSigninBtnModal.addEventListener('click', () => { auth.signInWithPopup(googleProvider).then(() => authModal.classList.add('hidden')).catch(err => { console.error("Sign in error", err); showToast(`Error: ${err.message}`, 'error'); }); });
             signoutBtn.addEventListener('click', () => { auth.signOut(); showToast("You've been signed out.", 'success'); });
+
+            signinForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('signin-email').value;
+                const password = document.getElementById('signin-password').value;
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(() => {
+                        authModal.classList.add('hidden');
+                    })
+                    .catch(err => {
+                        showToast(err.message, 'error');
+                    });
+            });
+
+            signupForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('signup-name').value;
+                const email = document.getElementById('signup-email').value;
+                const password = document.getElementById('signup-password').value;
+                auth.createUserWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        return userCredential.user.updateProfile({
+                            displayName: name
+                        }).then(() => {
+                             authModal.classList.add('hidden');
+                        });
+                    })
+                    .catch(err => {
+                        showToast(err.message, 'error');
+                    });
+            });
+
         } else {
             document.getElementById('auth-container').style.display = 'none';
             loadFromLocalStorage();
             renderTimers();
         }
+        
+        openAuthModalBtn.addEventListener('click', () => authModal.classList.remove('hidden'));
+        showSignupBtn.addEventListener('click', () => { signinView.classList.add('hidden'); signupView.classList.remove('hidden'); document.getElementById('auth-modal-title').textContent = 'Sign Up'; });
+        showSigninBtn.addEventListener('click', () => { signupView.classList.add('hidden'); signinView.classList.remove('hidden'); document.getElementById('auth-modal-title').textContent = 'Sign In'; });
 
-        closeModalBtns.forEach(btn => { btn.addEventListener('click', () => { addTimerModal.classList.add('hidden'); exportModal.classList.add('hidden'); importModal.classList.add('hidden'); }); });
+        closeModalBtns.forEach(btn => { btn.addEventListener('click', () => { addTimerModal.classList.add('hidden'); exportModal.classList.add('hidden'); importModal.classList.add('hidden'); authModal.classList.add('hidden'); }); });
         addTimerBtn.addEventListener('click', () => { timerForm.reset(); timerIdInput.value = ''; document.querySelector('#add-timer-modal h2').textContent = "Add New Timer"; imagePreview.src = ''; imagePreview.classList.add('hidden'); addTimerModal.classList.remove('hidden'); });
         timerForm.addEventListener('submit', handleSaveTimer);
         tempSlider.addEventListener('input', updateTempValue);
@@ -330,4 +403,5 @@
     </script>
 </body>
 </html>
+
 
