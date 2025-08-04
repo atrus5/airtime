@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/techsntk/airtime.techdigitalpro.ca/
+    - /bin/cp -R source $DEPLOYPATH
