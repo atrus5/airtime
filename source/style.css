@@ -1,7 +1,6 @@
 /* General body styling */
 body {
     font-family: 'Poppins', sans-serif;
-    background-color: #f8fafc;
 }
 
 /* Main container for the application */
@@ -9,7 +8,6 @@ body {
     max-width: 480px;
     margin: 0 auto;
     min-height: 100vh;
-    background-color: white;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
 }
 
@@ -31,6 +29,11 @@ body {
     transform: translateY(-2px);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
+
+.dark .card:hover {
+     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
 
 /* Modal transition effect */
 .add-timer-modal, .food-category-modal, .export-modal {
