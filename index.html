@@ -235,7 +235,23 @@
 
         // --- FUNCTION DEFINITIONS ---
         function initAudio() { if (!audioCtx) { audioCtx = new(window.AudioContext || window.webkitAudioContext)(); } }
-        function beep(times = 3, duration = 150, delay = 100) { if (!audioCtx) return; let time = audioCtx.currentTime; for (let i = 0; i < times; i++) { const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.type = 'sine'; o.frequency.setValueAtTime(880, time); g.gain.setValueAtTime(0.3, time); g.gain.exponentialRampToValueAtTime(0.0001, time + duration / 1000); o.start(time); o.stop(time + duration / 1000); time += (duration + delay) / 1000; } }
+        
+        function beep(times = 5, duration = 400, delay = 150) { 
+            if (!audioCtx) return; 
+            let time = audioCtx.currentTime; 
+            for (let i = 0; i < times; i++) { 
+                const o = audioCtx.createOscillator(), g = audioCtx.createGain(); 
+                o.connect(g); 
+                g.connect(audioCtx.destination); 
+                o.type = 'sine'; 
+                o.frequency.setValueAtTime(880, time); 
+                g.gain.setValueAtTime(0.8, time); 
+                g.gain.exponentialRampToValueAtTime(0.0001, time + duration / 1000); 
+                o.start(time); 
+                o.stop(time + duration / 1000); 
+                time += (duration + delay) / 1000; 
+            } 
+        }
         document.body.addEventListener('click', initAudio, { once: true });
 
         if (auth) {
