@@ -1,4 +1,4 @@
-console.log("Executing recipes.js version 5.0 - Corrected Favorites Logic");
+console.log("Executing recipes.js version 6.0 - Fixed Nav UI Bug");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- FIREBASE CONFIG & INITIALIZATION ---
@@ -141,12 +141,24 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateUIBasedOnTab() {
         tabBtns.forEach(b => b.classList.remove('active'));
         if (!showingFavorites) {
+            // A main tab is active
             document.querySelector(`.tab-btn[data-tab="${currentTab}"]`).classList.add('active');
+            
+            // Style the bottom nav: Make Recipes active, Favorites inactive
             recipesLink.classList.add('text-indigo-600', 'dark:text-indigo-400');
+            recipesLink.classList.remove('text-gray-500', 'dark:text-slate-400');
+            
             favoritesBtn.classList.remove('text-indigo-600', 'dark:text-indigo-400');
+            favoritesBtn.classList.add('text-gray-500', 'dark:text-slate-400');
+
         } else {
+            // Favorites is active
+            // Style the bottom nav: Make Favorites active, Recipes inactive
             favoritesBtn.classList.add('text-indigo-600', 'dark:text-indigo-400');
+            favoritesBtn.classList.remove('text-gray-500', 'dark:text-slate-400');
+            
             recipesLink.classList.remove('text-indigo-600', 'dark:text-indigo-400');
+            recipesLink.classList.add('text-gray-500', 'dark:text-slate-400');
         }
         
         if (currentTab === 'my-recipes' && currentUser && !showingFavorites) {
