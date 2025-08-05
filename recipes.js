@@ -1,3 +1,5 @@
+console.log("Executing recipes.js version 3.0 - If you see this, the correct file is loaded.");
+
 document.addEventListener('DOMContentLoaded', function() {
     // --- FIREBASE CONFIG & INITIALIZATION ---
     const firebaseConfig = {
@@ -12,25 +14,26 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let app, auth, db;
     try {
+        // Initialize Firebase using the compat libraries
         app = firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
         db = firebase.firestore();
     } catch (error) {
         console.error("Firebase initialization failed:", error);
+        // If Firebase fails, stop here and show an error message to the user.
+        return;
     }
 
-    // --- DOM ELEMENT REFERENCES ---
+    // --- DOM REFERENCES ---
     const recipeContainer = document.getElementById('recipe-container');
     const noRecipes = document.getElementById('no-recipes');
     const addRecipeBtn = document.getElementById('add-recipe-btn');
+    const addRecipeSection = document.getElementById('add-recipe-section');
     const recipeModal = document.getElementById('recipe-modal');
     const viewRecipeModal = document.getElementById('view-recipe-modal');
-    const linkTimerModal = document.getElementById('link-timer-modal');
     const closeModalBtns = document.querySelectorAll('.close-modal');
     const recipeForm = document.getElementById('recipe-form');
-    const linkTimerBtn = document.getElementById('link-timer-btn');
-    const timersListContainer = document.getElementById('timers-list');
-    const linkedTimerDisplay = document.getElementById('linked-timer-display');
+    const tabBtns = document.querySelectorAll('.tab-btn');
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     const themeIconDark = document.getElementById('theme-icon-dark');
     const themeIconLight = document.getElementById('theme-icon-light');
@@ -38,12 +41,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const toastMessage = document.getElementById('toast-message');
 
     // --- APPLICATION STATE ---
-    let recipes = [];
-    let timers = [];
+    let publicRecipes = [];
+    let communityRecipes = [];
+    let myRecipes = [];
     let currentUser = null;
-    let unsubscribeRecipes;
-    let unsubscribeTimers;
-    let currentLinkedTimerId = null;
+    let currentTab = 'official'; // Default tab
+    let unsubscribePublic, unsubscribeCommunity, unsubscribeMyRecipes;
+
 
     // --- THEME MANAGEMENT ---
     function applyTheme(theme) {
@@ -57,7 +61,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if(themeIconLight) themeIconLight.classList.add('hidden');
         }
     }
+    // Set theme on initial load
     applyTheme(localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
             const isDark = document.documentElement.classList.contains('dark');
@@ -67,52 +73,128 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- AUTHENTICATION ---
+    // --- AUTHENTICATION & DATA LOADING ---
     if (auth) {
         auth.onAuthStateChanged(user => {
-            if (user) {
-                currentUser = user;
-                loadRecipes();
-                loadTimers();
+            currentUser = user;
+            loadAllRecipes(); // This will load data based on the user's auth state
+            updateUIBasedOnTab(); // This will set the correct view based on the current tab
+        });
+    } else {
+        // Fallback for when Firebase auth isn't available
+        loadAllRecipes();
+        updateUIBasedOnTab();
+    }
+
+    function loadAllRecipes() {
+        // Detach previous listeners to prevent memory leaks and duplicate data fetching
+        if (unsubscribePublic) unsubscribePublic();
+        if (unsubscribeCommunity) unsubscribeCommunity();
+        if (unsubscribeMyRecipes) unsubscribeMyRecipes();
+
+        // Load public (official) recipes for everyone
+        unsubscribePublic = db.collection('public_recipes').onSnapshot(snapshot => {
+            publicRecipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderRecipes(); // Re-render with the latest data
+        }, err => console.error("Error fetching public recipes:", err));
+
+        if (currentUser) {
+            // Load community recipes if a user is signed in
+            unsubscribeCommunity = db.collection('community_recipes').onSnapshot(snapshot => {
+                communityRecipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderRecipes();
+            }, err => console.error("Error fetching community recipes:", err));
+            
+            // Load user's private recipes if a user is signed in
+            unsubscribeMyRecipes = db.collection('users').doc(currentUser.uid).collection('recipes').onSnapshot(snapshot => {
+                myRecipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderRecipes();
+            }, err => console.error("Error fetching user recipes:", err));
+        } else {
+            // Clear user-specific data if the user is logged out
+            communityRecipes = [];
+            myRecipes = [];
+            renderRecipes();
+        }
+    }
+
+    // --- TAB & RENDERING LOGIC ---
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // When a tab is clicked, update the state and the UI
+            currentTab = e.currentTarget.dataset.tab;
+            updateUIBasedOnTab();
+        });
+    });
+
+    function updateUIBasedOnTab() {
+        // Update active state on tab buttons
+        tabBtns.forEach(b => {
+            if (b.dataset.tab === currentTab) {
+                b.classList.add('active');
             } else {
-                currentUser = null;
-                // Redirect to login or show message if not logged in
-                recipeContainer.innerHTML = '<p class="text-center text-gray-500 dark:text-slate-400">Please sign in on the Timers page to view and manage recipes.</p>';
+                b.classList.remove('active');
             }
         });
+        
+        // Show or hide the "Add New Recipe" button based on the tab and login status
+        if (currentTab === 'my-recipes' && currentUser) {
+            if(addRecipeSection) addRecipeSection.classList.remove('hidden');
+        } else {
+            if(addRecipeSection) addRecipeSection.classList.add('hidden');
+        }
+        renderRecipes(); // Re-render the recipe list for the selected tab
     }
 
-    // --- DATA LOADING ---
-    function loadRecipes() {
-        if (!currentUser) return;
-        const collectionRef = db.collection('users').doc(currentUser.uid).collection('recipes');
-        unsubscribeRecipes = collectionRef.onSnapshot(snapshot => {
-            recipes = snapshot.docs.map(doc => doc.data());
-            renderRecipes();
-        }, error => console.error("Error fetching recipes:", error));
-    }
-
-    function loadTimers() {
-        if (!currentUser) return;
-        const collectionRef = db.collection('users').doc(currentUser.uid).collection('timers');
-        unsubscribeTimers = collectionRef.onSnapshot(snapshot => {
-            timers = snapshot.docs.map(doc => doc.data());
-        }, error => console.error("Error fetching timers:", error));
-    }
-
-    // --- RENDERING ---
     function renderRecipes() {
-        if (recipes.length === 0) {
-            recipeContainer.innerHTML = '';
-            noRecipes.classList.remove('hidden');
+        let recipesToRender = [];
+        let message = "No recipes found.";
+
+        // Determine which list of recipes to show
+        switch(currentTab) {
+            case 'official':
+                recipesToRender = publicRecipes;
+                message = "No official recipes yet. Check back soon!";
+                break;
+            case 'community':
+                if (!currentUser) {
+                    if(recipeContainer) recipeContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-slate-400">Please sign in to view community recipes.</p>`;
+                    if(noRecipes) noRecipes.classList.add('hidden');
+                    return;
+                }
+                recipesToRender = communityRecipes;
+                message = "No community recipes yet. Be the first to share one!";
+                break;
+            case 'my-recipes':
+                if (!currentUser) {
+                    if(recipeContainer) recipeContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-slate-400">Please sign in to manage your recipes.</p>`;
+                    if(noRecipes) noRecipes.classList.add('hidden');
+                    return;
+                }
+                recipesToRender = myRecipes;
+                message = "You haven't added any private recipes yet.";
+                break;
+        }
+
+        // Handle the case where there are no recipes to display
+        if (!recipesToRender || recipesToRender.length === 0) {
+            if(noRecipes) {
+                noRecipes.innerHTML = `<p>${message}</p>`;
+                noRecipes.classList.remove('hidden');
+            }
+            if(recipeContainer) recipeContainer.innerHTML = '';
             return;
         }
-        noRecipes.classList.add('hidden');
-        recipeContainer.innerHTML = '';
-        recipes.forEach(recipe => {
-            const card = createRecipeCard(recipe);
-            recipeContainer.appendChild(card);
-        });
+
+        // If we have recipes, hide the 'no recipes' message and render the cards
+        if(noRecipes) noRecipes.classList.add('hidden');
+        if(recipeContainer) {
+            recipeContainer.innerHTML = '';
+            recipesToRender.forEach(recipe => {
+                const card = createRecipeCard(recipe);
+                recipeContainer.appendChild(card);
+            });
+        }
     }
 
     function createRecipeCard(recipe) {
@@ -122,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const placeholderImg = `https://placehold.co/600x400/e0e7ff/4338ca?text=${encodeURIComponent(recipe.name)}`;
         
         card.innerHTML = `
-            <img src="${recipe.imageUrl || placeholderImg}" alt="${recipe.name}" class="w-full h-40 object-cover">
+            <img src="${recipe.imageUrl || placeholderImg}" alt="${recipe.name}" class="w-full h-40 object-cover" onerror="this.onerror=null;this.src='${placeholderImg}';">
             <div class="p-4">
                 <h3 class="font-bold text-lg text-gray-800 dark:text-slate-100">${recipe.name}</h3>
                 <div class="flex items-center space-x-4 text-sm text-gray-500 dark:text-slate-400 mt-2">
@@ -131,27 +213,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `;
-        card.addEventListener('click', () => viewRecipe(recipe.id));
+        card.addEventListener('click', () => viewRecipe(recipe));
         return card;
     }
 
     // --- MODAL & FORM HANDLING ---
-    addRecipeBtn.addEventListener('click', () => {
-        recipeForm.reset();
-        document.getElementById('recipe-id').value = '';
-        document.getElementById('recipe-modal-title').textContent = "Add New Recipe";
-        document.getElementById('recipe-image-preview').classList.add('hidden');
-        linkedTimerDisplay.textContent = 'No time linked';
-        currentLinkedTimerId = null;
-        recipeModal.classList.remove('hidden');
-    });
+    if(addRecipeBtn) {
+        addRecipeBtn.addEventListener('click', () => {
+            if (recipeForm) recipeForm.reset();
+            document.getElementById('recipe-id').value = '';
+            document.getElementById('recipe-modal-title').textContent = "Add New Recipe";
+            const preview = document.getElementById('recipe-image-preview');
+            if (preview) {
+                preview.src = '';
+                preview.classList.add('hidden');
+            }
+            if (recipeModal) recipeModal.classList.remove('hidden');
+        });
+    }
 
     closeModalBtns.forEach(btn => btn.addEventListener('click', () => {
         btn.closest('.modal').classList.add('hidden');
     }));
 
-    recipeForm.addEventListener('submit', handleSaveRecipe);
-    linkTimerBtn.addEventListener('click', openLinkTimerModal);
+    if(recipeForm) recipeForm.addEventListener('submit', handleSaveRecipe);
 
     // --- RECIPE ACTIONS (SAVE, VIEW, DELETE) ---
     async function handleSaveRecipe(e) {
@@ -161,8 +246,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const id = document.getElementById('recipe-id').value || Date.now().toString();
-        const isEditing = !!document.getElementById('recipe-id').value;
+        const recipeId = document.getElementById('recipe-id').value;
+        const isEditing = !!recipeId;
+        const shareWithCommunity = document.getElementById('share-recipe-checkbox').checked;
 
         const toBase64 = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -176,92 +262,126 @@ document.addEventListener('DOMContentLoaded', function() {
         if (imageFile) {
             imageUrl = await toBase64(imageFile);
         } else if (isEditing) {
-            const existingRecipe = recipes.find(r => r.id === id);
+            const existingRecipe = myRecipes.find(r => r.id === recipeId) || communityRecipes.find(r => r.id === recipeId);
             imageUrl = existingRecipe?.imageUrl || '';
         }
 
         const recipeData = {
-            id: id,
             name: document.getElementById('recipe-name').value,
             imageUrl: imageUrl,
             prepTime: document.getElementById('recipe-prep-time').value,
             cookTime: document.getElementById('recipe-cook-time').value,
             ingredients: document.getElementById('recipe-ingredients').value.split('\n').filter(i => i.trim() !== ''),
             instructions: document.getElementById('recipe-instructions').value.split('\n').filter(i => i.trim() !== ''),
-            linkedTimerId: currentLinkedTimerId
+            authorId: currentUser.uid,
         };
 
+        const newCollectionPath = shareWithCommunity ? 'community_recipes' : `users/${currentUser.uid}/recipes`;
+        const docId = isEditing ? recipeId : db.collection('users').doc().id; // Generate a new ID for new recipes
+
         try {
-            await db.collection('users').doc(currentUser.uid).collection('recipes').doc(id).set(recipeData);
+            if (isEditing) {
+                const wasInCommunity = communityRecipes.some(r => r.id === recipeId);
+                const wasPrivate = myRecipes.some(r => r.id === recipeId);
+                if (shareWithCommunity && wasPrivate) {
+                    await db.collection(`users/${currentUser.uid}/recipes`).doc(recipeId).delete();
+                } else if (!shareWithCommunity && wasInCommunity) {
+                    await db.collection('community_recipes').doc(recipeId).delete();
+                }
+            }
+            await db.collection(newCollectionPath).doc(docId).set({ ...recipeData, id: docId });
             showToast(`Recipe ${isEditing ? 'updated' : 'saved'}!`);
-            recipeModal.classList.add('hidden');
+            if (recipeModal) recipeModal.classList.add('hidden');
         } catch (err) {
+            console.error("Error saving recipe:", err);
             showToast(`Error: ${err.message}`, 'error');
         }
     }
 
-    function viewRecipe(id) {
-        const recipe = recipes.find(r => r.id === id);
-        if (!recipe) return;
-
+    function viewRecipe(recipe) {
         document.getElementById('view-recipe-name').textContent = recipe.name;
         const viewImage = document.getElementById('view-recipe-image');
         const placeholderImg = `https://placehold.co/600x400/e0e7ff/4338ca?text=${encodeURIComponent(recipe.name)}`;
         viewImage.src = recipe.imageUrl || placeholderImg;
+        viewImage.onerror = () => { viewImage.src = placeholderImg; };
 
         document.getElementById('view-prep-time').textContent = `Prep: ${recipe.prepTime || 'N/A'} min`;
         document.getElementById('view-cook-time').textContent = `Cook: ${recipe.cookTime || 'N/A'} min`;
         
-        document.getElementById('view-recipe-ingredients').innerHTML = `<ul>${recipe.ingredients.map(i => `<li>${i}</li>`).join('')}</ul>`;
-        document.getElementById('view-recipe-instructions').innerHTML = `<ol>${recipe.instructions.map(i => `<li>${i}</li>`).join('')}</ol>`;
+        document.getElementById('view-recipe-ingredients').innerHTML = `<ul>${(recipe.ingredients || []).map(i => `<li>${i}</li>`).join('')}</ul>`;
+        document.getElementById('view-recipe-instructions').innerHTML = `<ol>${(recipe.instructions || []).map(i => `<li>${i}</li>`).join('')}</ol>`;
         
-        const linkedTimerSection = document.getElementById('view-linked-timer-section');
-        if (recipe.linkedTimerId) {
-            const timer = timers.find(t => t.id.toString() === recipe.linkedTimerId);
-            if (timer) {
-                document.getElementById('view-linked-timer').innerHTML = `
-                    <p class="font-semibold dark:text-slate-200">${timer.name}</p>
-                    <p class="text-sm dark:text-slate-300">${timer.minutes}m ${timer.seconds || 0}s at ${timer.temperature}°${timer.tempUnit}</p>
-                `;
-                linkedTimerSection.classList.remove('hidden');
+        const actionsContainer = document.getElementById('view-recipe-actions');
+        actionsContainer.innerHTML = ''; 
+        if (currentUser && recipe.authorId === currentUser.uid) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600';
+            editBtn.textContent = 'Edit';
+            editBtn.onclick = () => {
+                if (viewRecipeModal) viewRecipeModal.classList.add('hidden');
+                editUserRecipe(recipe);
+            };
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600';
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.onclick = () => deleteUserRecipe(recipe);
+
+            actionsContainer.appendChild(editBtn);
+            actionsContainer.appendChild(deleteBtn);
+        }
+
+        if (viewRecipeModal) viewRecipeModal.classList.remove('hidden');
+    }
+
+    function editUserRecipe(recipe) {
+        document.getElementById('recipe-modal-title').textContent = 'Edit Recipe';
+        document.getElementById('recipe-id').value = recipe.id;
+        document.getElementById('recipe-name').value = recipe.name;
+        document.getElementById('recipe-prep-time').value = recipe.prepTime;
+        document.getElementById('recipe-cook-time').value = recipe.cookTime;
+        document.getElementById('recipe-ingredients').value = (recipe.ingredients || []).join('\n');
+        document.getElementById('recipe-instructions').value = (recipe.instructions || []).join('\n');
+        
+        const isCommunity = communityRecipes.some(r => r.id === recipe.id);
+        document.getElementById('share-recipe-checkbox').checked = isCommunity;
+
+        const preview = document.getElementById('recipe-image-preview');
+        if (preview) {
+            if (recipe.imageUrl) {
+                preview.src = recipe.imageUrl;
+                preview.classList.remove('hidden');
+            } else {
+                preview.src = '';
+                preview.classList.add('hidden');
             }
-        } else {
-            linkedTimerSection.classList.add('hidden');
         }
-
-        viewRecipeModal.classList.remove('hidden');
+        if (recipeModal) recipeModal.classList.remove('hidden');
     }
 
-    // --- TIMER LINKING ---
-    function openLinkTimerModal() {
-        timersListContainer.innerHTML = '';
-        if (timers.length === 0) {
-            timersListContainer.innerHTML = '<p class="text-sm text-gray-500">No saved timers found.</p>';
-        } else {
-            timers.forEach(timer => {
-                const button = document.createElement('button');
-                button.className = 'w-full text-left p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700';
-                button.textContent = `${timer.name} (${timer.minutes}m ${timer.seconds || 0}s, ${timer.temperature}°${timer.tempUnit})`;
-                button.onclick = () => selectTimerForLinking(timer.id);
-                timersListContainer.appendChild(button);
-            });
+    async function deleteUserRecipe(recipe) {
+        if (window.confirm('Are you sure you want to delete this recipe?')) {
+            const isCommunity = communityRecipes.some(r => r.id === recipe.id);
+            const collectionPath = isCommunity ? 'community_recipes' : `users/${currentUser.uid}/recipes`;
+            try {
+                await db.collection(collectionPath).doc(recipe.id).delete();
+                showToast('Recipe deleted!');
+                if (viewRecipeModal) viewRecipeModal.classList.add('hidden');
+            } catch (err) {
+                console.error("Error deleting recipe:", err);
+                showToast(`Error: ${err.message}`, 'error');
+            }
         }
-        linkTimerModal.classList.remove('hidden');
-    }
-
-    function selectTimerForLinking(timerId) {
-        currentLinkedTimerId = timerId.toString();
-        const timer = timers.find(t => t.id.toString() === currentLinkedTimerId);
-        linkedTimerDisplay.textContent = `${timer.name} (${timer.minutes}m ${timer.seconds || 0}s)`;
-        linkTimerModal.classList.add('hidden');
     }
 
     // --- UTILITIES ---
     function showToast(message, type = 'success') {
-        toastMessage.textContent = message;
-        toast.className = `toast shadow-lg flex items-center text-white px-4 py-3 rounded-lg ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 3000);
+        if (toastMessage) toastMessage.textContent = message;
+        if (toast) {
+            toast.className = `toast shadow-lg flex items-center text-white px-4 py-3 rounded-lg ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
     }
 });
 
