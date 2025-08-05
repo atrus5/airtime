@@ -1,4 +1,4 @@
-console.log("Executing recipes.js version 3.0 - If you see this, the correct file is loaded.");
+console.log("Executing recipes.js version 5.0 - Corrected Favorites Logic");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- FIREBASE CONFIG & INITIALIZATION ---
@@ -14,13 +14,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let app, auth, db;
     try {
-        // Initialize Firebase using the compat libraries
         app = firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
         db = firebase.firestore();
     } catch (error) {
         console.error("Firebase initialization failed:", error);
-        // If Firebase fails, stop here and show an error message to the user.
         return;
     }
 
@@ -39,13 +37,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const themeIconLight = document.getElementById('theme-icon-light');
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
+    const searchInput = document.getElementById('search-input');
+    const sortSelect = document.getElementById('sort-by-select');
+    const favoritesBtn = document.getElementById('favorites-btn');
+    const recipesLink = document.querySelector('a[href="recipes.html"]');
+
 
     // --- APPLICATION STATE ---
     let publicRecipes = [];
     let communityRecipes = [];
     let myRecipes = [];
     let currentUser = null;
-    let currentTab = 'official'; // Default tab
+    let currentTab = 'official';
+    let showingFavorites = false;
     let unsubscribePublic, unsubscribeCommunity, unsubscribeMyRecipes;
 
 
@@ -61,7 +65,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if(themeIconLight) themeIconLight.classList.add('hidden');
         }
     }
-    // Set theme on initial load
     applyTheme(localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
     
     if (themeToggleBtn) {
@@ -77,135 +80,183 @@ document.addEventListener('DOMContentLoaded', function() {
     if (auth) {
         auth.onAuthStateChanged(user => {
             currentUser = user;
-            loadAllRecipes(); // This will load data based on the user's auth state
-            updateUIBasedOnTab(); // This will set the correct view based on the current tab
+            loadAllRecipes();
+            updateUIBasedOnTab();
         });
     } else {
-        // Fallback for when Firebase auth isn't available
         loadAllRecipes();
         updateUIBasedOnTab();
     }
 
     function loadAllRecipes() {
-        // Detach previous listeners to prevent memory leaks and duplicate data fetching
         if (unsubscribePublic) unsubscribePublic();
         if (unsubscribeCommunity) unsubscribeCommunity();
         if (unsubscribeMyRecipes) unsubscribeMyRecipes();
 
-        // Load public (official) recipes for everyone
         unsubscribePublic = db.collection('public_recipes').onSnapshot(snapshot => {
             publicRecipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderRecipes(); // Re-render with the latest data
+            renderRecipes();
         }, err => console.error("Error fetching public recipes:", err));
 
         if (currentUser) {
-            // Load community recipes if a user is signed in
             unsubscribeCommunity = db.collection('community_recipes').onSnapshot(snapshot => {
                 communityRecipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderRecipes();
             }, err => console.error("Error fetching community recipes:", err));
             
-            // Load user's private recipes if a user is signed in
             unsubscribeMyRecipes = db.collection('users').doc(currentUser.uid).collection('recipes').onSnapshot(snapshot => {
                 myRecipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderRecipes();
             }, err => console.error("Error fetching user recipes:", err));
         } else {
-            // Clear user-specific data if the user is logged out
             communityRecipes = [];
             myRecipes = [];
             renderRecipes();
         }
     }
 
-    // --- TAB & RENDERING LOGIC ---
+    // --- TAB, FILTER & SORT LOGIC ---
     tabBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // When a tab is clicked, update the state and the UI
             currentTab = e.currentTarget.dataset.tab;
+            showingFavorites = false;
             updateUIBasedOnTab();
         });
     });
+    
+    if (favoritesBtn) {
+        favoritesBtn.addEventListener('click', () => {
+            if (!currentUser) {
+                showToast("Please sign in to use favorites.", "error");
+                return;
+            }
+            showingFavorites = true;
+            updateUIBasedOnTab();
+        });
+    }
+
+    if(searchInput) searchInput.addEventListener('input', renderRecipes);
+    if(sortSelect) sortSelect.addEventListener('change', renderRecipes);
 
     function updateUIBasedOnTab() {
-        // Update active state on tab buttons
-        tabBtns.forEach(b => {
-            if (b.dataset.tab === currentTab) {
-                b.classList.add('active');
-            } else {
-                b.classList.remove('active');
-            }
-        });
-        
-        // Show or hide the "Add New Recipe" button based on the tab and login status
-        if (currentTab === 'my-recipes' && currentUser) {
-            if(addRecipeSection) addRecipeSection.classList.remove('hidden');
+        tabBtns.forEach(b => b.classList.remove('active'));
+        if (!showingFavorites) {
+            document.querySelector(`.tab-btn[data-tab="${currentTab}"]`).classList.add('active');
+            recipesLink.classList.add('text-indigo-600', 'dark:text-indigo-400');
+            favoritesBtn.classList.remove('text-indigo-600', 'dark:text-indigo-400');
         } else {
-            if(addRecipeSection) addRecipeSection.classList.add('hidden');
+            favoritesBtn.classList.add('text-indigo-600', 'dark:text-indigo-400');
+            recipesLink.classList.remove('text-indigo-600', 'dark:text-indigo-400');
         }
-        renderRecipes(); // Re-render the recipe list for the selected tab
+        
+        if (currentTab === 'my-recipes' && currentUser && !showingFavorites) {
+            addRecipeSection.classList.remove('hidden');
+        } else {
+            addRecipeSection.classList.add('hidden');
+        }
+        renderRecipes();
     }
 
     function renderRecipes() {
         let recipesToRender = [];
         let message = "No recipes found.";
 
-        // Determine which list of recipes to show
-        switch(currentTab) {
-            case 'official':
-                recipesToRender = publicRecipes;
-                message = "No official recipes yet. Check back soon!";
+        if (showingFavorites) {
+            if (!currentUser) {
+                 recipeContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-slate-400">Please sign in to view favorites.</p>`;
+                 return;
+            }
+            // Favorites are ONLY from the user's own collection.
+            recipesToRender = myRecipes.filter(r => r.favorite);
+            message = "You haven't favorited any recipes yet.";
+        } else {
+            switch(currentTab) {
+                case 'official':
+                    recipesToRender = publicRecipes;
+                    message = "No official recipes yet. Check back soon!";
+                    break;
+                case 'community':
+                    if (!currentUser) {
+                        recipeContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-slate-400">Please sign in to view community recipes.</p>`;
+                        if(noRecipes) noRecipes.classList.add('hidden');
+                        return;
+                    }
+                    recipesToRender = communityRecipes;
+                    message = "No community recipes yet. Be the first to share one!";
+                    break;
+                case 'my-recipes':
+                    if (!currentUser) {
+                        recipeContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-slate-400">Please sign in to manage your recipes.</p>`;
+                        if(noRecipes) noRecipes.classList.add('hidden');
+                        return;
+                    }
+                    recipesToRender = myRecipes;
+                    message = "You haven't added any private recipes yet.";
+                    break;
+            }
+        }
+
+        // --- Filtering ---
+        const searchTerm = searchInput.value.toLowerCase();
+        if (searchTerm) {
+            recipesToRender = recipesToRender.filter(recipe => recipe.name.toLowerCase().includes(searchTerm));
+        }
+
+        // --- Sorting ---
+        const sortBy = sortSelect.value;
+        switch (sortBy) {
+            case 'latest':
+                recipesToRender.sort((a, b) => (b.id > a.id) ? 1 : -1);
                 break;
-            case 'community':
-                if (!currentUser) {
-                    if(recipeContainer) recipeContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-slate-400">Please sign in to view community recipes.</p>`;
-                    if(noRecipes) noRecipes.classList.add('hidden');
-                    return;
-                }
-                recipesToRender = communityRecipes;
-                message = "No community recipes yet. Be the first to share one!";
+            case 'alpha-asc':
+                recipesToRender.sort((a, b) => a.name.localeCompare(b.name));
                 break;
-            case 'my-recipes':
-                if (!currentUser) {
-                    if(recipeContainer) recipeContainer.innerHTML = `<p class="text-center text-gray-500 dark:text-slate-400">Please sign in to manage your recipes.</p>`;
-                    if(noRecipes) noRecipes.classList.add('hidden');
-                    return;
-                }
-                recipesToRender = myRecipes;
-                message = "You haven't added any private recipes yet.";
+            case 'alpha-desc':
+                recipesToRender.sort((a, b) => b.name.localeCompare(a.name));
+                break;
+            case 'time-asc':
+                recipesToRender.sort((a, b) => (parseInt(a.cookTime) || 0) - (parseInt(b.cookTime) || 0));
+                break;
+            case 'time-desc':
+                recipesToRender.sort((a, b) => (parseInt(b.cookTime) || 0) - (parseInt(a.cookTime) || 0));
                 break;
         }
 
-        // Handle the case where there are no recipes to display
-        if (!recipesToRender || recipesToRender.length === 0) {
+        if (recipesToRender.length === 0) {
             if(noRecipes) {
                 noRecipes.innerHTML = `<p>${message}</p>`;
                 noRecipes.classList.remove('hidden');
             }
-            if(recipeContainer) recipeContainer.innerHTML = '';
+            recipeContainer.innerHTML = '';
             return;
         }
 
-        // If we have recipes, hide the 'no recipes' message and render the cards
         if(noRecipes) noRecipes.classList.add('hidden');
-        if(recipeContainer) {
-            recipeContainer.innerHTML = '';
-            recipesToRender.forEach(recipe => {
-                const card = createRecipeCard(recipe);
-                recipeContainer.appendChild(card);
-            });
-        }
+        recipeContainer.innerHTML = '';
+        // Create a set of favorite IDs from the user's private recipes for quick lookup
+        const favoriteIds = new Set(myRecipes.filter(r => r.favorite).map(r => r.id));
+        recipesToRender.forEach(recipe => {
+            // A recipe is considered a favorite for the UI if its ID is in the user's favorite set.
+            const isFavorite = favoriteIds.has(recipe.id);
+            const card = createRecipeCard(recipe, isFavorite);
+            recipeContainer.appendChild(card);
+        });
     }
 
-    function createRecipeCard(recipe) {
+    function createRecipeCard(recipe, isFavorite) {
         const card = document.createElement('div');
-        card.className = 'card bg-white dark:bg-slate-700 rounded-lg shadow overflow-hidden cursor-pointer';
+        card.className = 'card bg-white dark:bg-slate-700 rounded-lg shadow overflow-hidden';
         card.dataset.id = recipe.id;
         const placeholderImg = `https://placehold.co/600x400/e0e7ff/4338ca?text=${encodeURIComponent(recipe.name)}`;
         
         card.innerHTML = `
-            <img src="${recipe.imageUrl || placeholderImg}" alt="${recipe.name}" class="w-full h-40 object-cover" onerror="this.onerror=null;this.src='${placeholderImg}';">
-            <div class="p-4">
+            <div class="relative">
+                <img src="${recipe.imageUrl || placeholderImg}" alt="${recipe.name}" class="w-full h-40 object-cover cursor-pointer" onerror="this.onerror=null;this.src='${placeholderImg}';">
+                <button class="favorite-btn absolute top-2 right-2 bg-white/70 p-1.5 rounded-full text-gray-600 hover:text-red-500" data-id="${recipe.id}" title="Favorite">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ${isFavorite ? 'text-red-500 fill-current' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                </button>
+            </div>
+            <div class="p-4 cursor-pointer">
                 <h3 class="font-bold text-lg text-gray-800 dark:text-slate-100">${recipe.name}</h3>
                 <div class="flex items-center space-x-4 text-sm text-gray-500 dark:text-slate-400 mt-2">
                     <span>Prep: ${recipe.prepTime || 'N/A'} min</span>
@@ -213,22 +264,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `;
-        card.addEventListener('click', () => viewRecipe(recipe));
+        card.querySelector('.p-4').addEventListener('click', () => viewRecipe(recipe));
+        card.querySelector('img').addEventListener('click', () => viewRecipe(recipe));
+        card.querySelector('.favorite-btn').addEventListener('click', () => toggleFavorite(recipe));
         return card;
     }
 
     // --- MODAL & FORM HANDLING ---
     if(addRecipeBtn) {
         addRecipeBtn.addEventListener('click', () => {
-            if (recipeForm) recipeForm.reset();
+            recipeForm.reset();
             document.getElementById('recipe-id').value = '';
             document.getElementById('recipe-modal-title').textContent = "Add New Recipe";
             const preview = document.getElementById('recipe-image-preview');
-            if (preview) {
-                preview.src = '';
-                preview.classList.add('hidden');
-            }
-            if (recipeModal) recipeModal.classList.remove('hidden');
+            preview.src = '';
+            preview.classList.add('hidden');
+            recipeModal.classList.remove('hidden');
         });
     }
 
@@ -238,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if(recipeForm) recipeForm.addEventListener('submit', handleSaveRecipe);
 
-    // --- RECIPE ACTIONS (SAVE, VIEW, DELETE) ---
+    // --- RECIPE ACTIONS (SAVE, VIEW, DELETE, FAVORITE) ---
     async function handleSaveRecipe(e) {
         e.preventDefault();
         if (!currentUser) {
@@ -274,10 +325,11 @@ document.addEventListener('DOMContentLoaded', function() {
             ingredients: document.getElementById('recipe-ingredients').value.split('\n').filter(i => i.trim() !== ''),
             instructions: document.getElementById('recipe-instructions').value.split('\n').filter(i => i.trim() !== ''),
             authorId: currentUser.uid,
+            favorite: isEditing ? (myRecipes.find(r => r.id === recipeId)?.favorite || false) : false
         };
 
         const newCollectionPath = shareWithCommunity ? 'community_recipes' : `users/${currentUser.uid}/recipes`;
-        const docId = isEditing ? recipeId : db.collection('users').doc().id; // Generate a new ID for new recipes
+        const docId = isEditing ? recipeId : db.collection('users').doc().id;
 
         try {
             if (isEditing) {
@@ -291,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             await db.collection(newCollectionPath).doc(docId).set({ ...recipeData, id: docId });
             showToast(`Recipe ${isEditing ? 'updated' : 'saved'}!`);
-            if (recipeModal) recipeModal.classList.add('hidden');
+            recipeModal.classList.add('hidden');
         } catch (err) {
             console.error("Error saving recipe:", err);
             showToast(`Error: ${err.message}`, 'error');
@@ -318,7 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
             editBtn.className = 'bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600';
             editBtn.textContent = 'Edit';
             editBtn.onclick = () => {
-                if (viewRecipeModal) viewRecipeModal.classList.add('hidden');
+                viewRecipeModal.classList.add('hidden');
                 editUserRecipe(recipe);
             };
 
@@ -331,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
             actionsContainer.appendChild(deleteBtn);
         }
 
-        if (viewRecipeModal) viewRecipeModal.classList.remove('hidden');
+        viewRecipeModal.classList.remove('hidden');
     }
 
     function editUserRecipe(recipe) {
@@ -347,26 +399,37 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('share-recipe-checkbox').checked = isCommunity;
 
         const preview = document.getElementById('recipe-image-preview');
-        if (preview) {
-            if (recipe.imageUrl) {
-                preview.src = recipe.imageUrl;
-                preview.classList.remove('hidden');
-            } else {
-                preview.src = '';
-                preview.classList.add('hidden');
-            }
+        if (recipe.imageUrl) {
+            preview.src = recipe.imageUrl;
+            preview.classList.remove('hidden');
+        } else {
+            preview.src = '';
+            preview.classList.add('hidden');
         }
-        if (recipeModal) recipeModal.classList.remove('hidden');
+        recipeModal.classList.remove('hidden');
     }
 
     async function deleteUserRecipe(recipe) {
         if (window.confirm('Are you sure you want to delete this recipe?')) {
-            const isCommunity = communityRecipes.some(r => r.id === recipe.id);
-            const collectionPath = isCommunity ? 'community_recipes' : `users/${currentUser.uid}/recipes`;
+            // A user can only delete recipes they are the author of.
+            if (!currentUser || recipe.authorId !== currentUser.uid) {
+                showToast("You can only delete your own recipes.", "error");
+                return;
+            }
+
             try {
-                await db.collection(collectionPath).doc(recipe.id).delete();
+                // Delete from the user's private collection
+                await db.collection(`users/${currentUser.uid}/recipes`).doc(recipe.id).delete();
+
+                // If it was also a community recipe, delete that too
+                const communityDocRef = db.collection('community_recipes').doc(recipe.id);
+                const communityDoc = await communityDocRef.get();
+                if (communityDoc.exists() && communityDoc.data().authorId === currentUser.uid) {
+                    await communityDocRef.delete();
+                }
+                
                 showToast('Recipe deleted!');
-                if (viewRecipeModal) viewRecipeModal.classList.add('hidden');
+                viewRecipeModal.classList.add('hidden');
             } catch (err) {
                 console.error("Error deleting recipe:", err);
                 showToast(`Error: ${err.message}`, 'error');
@@ -374,14 +437,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    async function toggleFavorite(recipe) {
+        if (!currentUser) {
+            showToast("Please sign in to favorite recipes.", "error");
+            return;
+        }
+        
+        const userRecipeRef = db.collection(`users/${currentUser.uid}/recipes`).doc(recipe.id);
+        const userRecipeDoc = await userRecipeRef.get();
+
+        if (userRecipeDoc.exists) {
+            // The recipe is in the user's collection, so we just toggle the favorite status.
+            const currentFavoriteState = userRecipeDoc.data().favorite || false;
+            await userRecipeRef.update({ favorite: !currentFavoriteState });
+            showToast(!currentFavoriteState ? "Recipe favorited!" : "Recipe unfavorited.");
+        } else {
+            // The recipe is not in the user's collection (it's a public or community one).
+            // We copy it to the user's collection and set favorite to true.
+            const newRecipeData = { ...recipe, favorite: true, authorId: currentUser.uid };
+            await userRecipeRef.set(newRecipeData);
+            showToast("Recipe added to your collection and favorited!");
+        }
+    }
+
     // --- UTILITIES ---
     function showToast(message, type = 'success') {
-        if (toastMessage) toastMessage.textContent = message;
-        if (toast) {
-            toast.className = `toast shadow-lg flex items-center text-white px-4 py-3 rounded-lg ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
+        toastMessage.textContent = message;
+        toast.className = `toast shadow-lg flex items-center text-white px-4 py-3 rounded-lg ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
     }
 });
 
