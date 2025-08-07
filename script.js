@@ -283,9 +283,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function stopAlarm() {
         alarmModal.classList.add('hidden');
         stopContinuousBeep();
-        // If the main timer finished, we leave the timer at 00:00
-        // The user must manually press the reset button.
-        // We do NOT call resetCountdown() here anymore.
         currentAlarmType = null;
     }
 
