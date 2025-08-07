@@ -15,6 +15,7 @@
     <!-- Firebase Libraries -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     
     <script>
@@ -70,6 +71,43 @@
                     </div>
                     <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md font-medium hover:bg-indigo-700 dark:hover:bg-indigo-500">Save Changes</button>
                 </form>
+
+                <hr class="my-6 border-gray-200 dark:border-slate-700">
+                
+                <!-- User Stats Section -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-800 dark:text-slate-200">My Stats</h3>
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div class="p-4 bg-gray-100 dark:bg-slate-700 rounded-lg">
+                            <p id="recipe-count" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">0</p>
+                            <p class="text-sm text-gray-600 dark:text-slate-400">Recipes</p>
+                        </div>
+                        <div class="p-4 bg-gray-100 dark:bg-slate-700 rounded-lg">
+                            <p id="timer-count" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">0</p>
+                            <p class="text-sm text-gray-600 dark:text-slate-400">Timers</p>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-6 border-gray-200 dark:border-slate-700">
+
+                <!-- Favorite Timers Section -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-800 dark:text-slate-200">My Favorite Timers</h3>
+                    <div id="favorite-timers-list" class="space-y-2">
+                        <p class="text-sm text-gray-500 dark:text-slate-400">Loading favorite timers...</p>
+                    </div>
+                </div>
+
+                <hr class="my-6 border-gray-200 dark:border-slate-700">
+
+                <!-- My Recipes Section -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-800 dark:text-slate-200">My Recipes</h3>
+                    <div id="my-recipes-list" class="space-y-2">
+                         <p class="text-sm text-gray-500 dark:text-slate-400">Loading recipes...</p>
+                    </div>
+                </div>
 
                 <hr class="my-6 border-gray-200 dark:border-slate-700">
 

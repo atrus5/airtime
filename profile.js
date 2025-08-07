@@ -1,4 +1,4 @@
-console.log("Executing profile.js version 1.1 - Fixed auth redirect race condition");
+console.log("Executing profile.js version 1.2 - Added user stats and lists");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- FIREBASE CONFIG & INITIALIZATION ---
@@ -12,11 +12,12 @@ document.addEventListener('DOMContentLoaded', function() {
         measurementId: "G-B4S43HDY18"
     };
     
-    let app, auth, storage;
+    let app, auth, storage, db;
     try {
         app = firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
         storage = firebase.storage();
+        db = firebase.firestore();
     } catch (error) {
         console.error("Firebase initialization failed:", error);
         return;
@@ -38,6 +39,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const themeToggleBtnHeader = document.getElementById('theme-toggle-btn-header');
     const themeIconDarkHeader = document.getElementById('theme-icon-dark-header');
     const themeIconLightHeader = document.getElementById('theme-icon-light-header');
+    const recipeCountEl = document.getElementById('recipe-count');
+    const timerCountEl = document.getElementById('timer-count');
+    const favoriteTimersList = document.getElementById('favorite-timers-list');
+    const myRecipesList = document.getElementById('my-recipes-list');
+
 
     let currentUser = null;
 
@@ -66,9 +72,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (user) {
             currentUser = user;
             loadProfileData();
+            loadUserStats();
         } else {
             // User is not logged in. Show a message instead of redirecting immediately.
-            // This prevents the redirect race condition on page load.
             profileLoading.innerHTML = `
                 <p class="text-gray-500 dark:text-slate-400">You must be logged in to view this page.</p>
                 <a href="index.html" class="mt-4 inline-block text-indigo-600 dark:text-indigo-400 hover:underline">Go to Homepage to Sign In</a>
@@ -96,6 +102,71 @@ document.addEventListener('DOMContentLoaded', function() {
 
         profileLoading.classList.add('hidden');
         profileContent.classList.remove('hidden');
+    }
+
+    async function loadUserStats() {
+        if (!currentUser) return;
+
+        try {
+            // Get Timers
+            const timersSnapshot = await db.collection('users').doc(currentUser.uid).collection('timers').get();
+            const timers = timersSnapshot.docs.map(doc => doc.data());
+            const favoriteTimers = timers.filter(t => t.favorite);
+
+            timerCountEl.textContent = timers.length;
+            renderFavoriteTimers(favoriteTimers);
+
+            // Get Recipes
+            const recipesSnapshot = await db.collection('users').doc(currentUser.uid).collection('recipes').get();
+            const recipes = recipesSnapshot.docs.map(doc => doc.data());
+            
+            recipeCountEl.textContent = recipes.length;
+            renderMyRecipes(recipes);
+
+        } catch (error) {
+            console.error("Error loading user stats:", error);
+            showToast("Could not load your stats.", "error");
+        }
+    }
+
+    function renderFavoriteTimers(timers) {
+        favoriteTimersList.innerHTML = '';
+        if (timers.length === 0) {
+            favoriteTimersList.innerHTML = '<p class="text-sm text-gray-500 dark:text-slate-400">No favorite timers yet. You can favorite them on the Timers page.</p>';
+            return;
+        }
+        timers.forEach(timer => {
+            const item = document.createElement('div');
+            item.className = 'p-3 bg-gray-50 dark:bg-slate-700/50 rounded-md flex justify-between items-center';
+            item.innerHTML = `
+                <div>
+                    <p class="font-medium text-gray-800 dark:text-slate-200">${timer.name}</p>
+                    <p class="text-xs text-gray-500 dark:text-slate-400">${timer.minutes}m ${timer.seconds || 0}s at ${timer.temperature}°${timer.tempUnit}</p>
+                </div>
+                <a href="index.html" class="text-indigo-600 dark:text-indigo-400 text-sm hover:underline">View</a>
+            `;
+            favoriteTimersList.appendChild(item);
+        });
+    }
+
+    function renderMyRecipes(recipes) {
+        myRecipesList.innerHTML = '';
+        if (recipes.length === 0) {
+            myRecipesList.innerHTML = '<p class="text-sm text-gray-500 dark:text-slate-400">You haven\'t created any recipes yet. You can add them on the Recipes page.</p>';
+            return;
+        }
+        recipes.forEach(recipe => {
+            const item = document.createElement('div');
+            item.className = 'p-3 bg-gray-50 dark:bg-slate-700/50 rounded-md flex justify-between items-center';
+            item.innerHTML = `
+                <div>
+                    <p class="font-medium text-gray-800 dark:text-slate-200">${recipe.name}</p>
+                    <p class="text-xs text-gray-500 dark:text-slate-400">Cook time: ${recipe.cookTime || 'N/A'} min</p>
+                </div>
+                <a href="recipes.html" class="text-indigo-600 dark:text-indigo-400 text-sm hover:underline">View</a>
+            `;
+            myRecipesList.appendChild(item);
+        });
     }
 
     // --- EVENT LISTENERS ---
