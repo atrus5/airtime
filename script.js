@@ -1,4 +1,4 @@
-console.log("Executing script.js version 1.4 - Moved theme toggle to header");
+console.log("Executing script.js version 1.5 - Added resilient background timer");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- THEME MANAGEMENT ---
@@ -106,8 +106,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let flipTimeout;
     let beepInterval;
     let currentAlarmType = null;
+    
+    // New state variables for resilient timer
     let countdownTotalSeconds = 0;
-    let isCountdownPaused = false;
+    let countdownEndTime = 0; // Timestamp when the timer should end
+    let secondsLeftOnPause = 0; // Seconds remaining when timer was paused
+
     let audioCtx;
 
     // --- FUNCTION DEFINITIONS ---
@@ -202,7 +206,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if(homeBtn) {
         homeBtn.addEventListener('click', () => { 
-            // This is a link now, so JS interaction for view switching isn't needed,
         });
     }
 
@@ -251,7 +254,12 @@ document.addEventListener('DOMContentLoaded', function() {
     async function deleteTimer(id) { if (confirm("Are you sure?")) { if (currentUser && db) { try { await db.collection('users').doc(currentUser.uid).collection('timers').doc(id.toString()).delete(); showToast("Timer deleted!"); } catch (err) { showToast(`Error: ${err.message}`, 'error'); } } else { timers = timers.filter(timer => timer.id.toString() !== id.toString()); saveToLocalStorage(); renderTimers(); showToast("Timer deleted!"); } } }
     function editTimer(timerToEdit) { document.querySelector('#add-timer-modal h2').textContent = "Edit Timer"; timerIdInput.value = timerToEdit.id; document.getElementById('food-name').value = timerToEdit.name; document.getElementById('food-category').value = timerToEdit.category; document.querySelector(`input[name="food-state"][value="${timerToEdit.foodState}"]`).checked = true; tempSlider.value = timerToEdit.temperature; tempUnitToggle.checked = timerToEdit.tempUnit === 'F'; isCelsius = timerToEdit.tempUnit === 'C'; updateTempValue(); document.getElementById('time-minutes').value = timerToEdit.minutes; document.getElementById('time-seconds').value = timerToEdit.seconds || ''; document.getElementById('food-notes').value = timerToEdit.notes || ''; document.getElementById('flip-reminder').checked = timerToEdit.flip || false; if (timerToEdit.imageUrl) { imagePreview.src = timerToEdit.imageUrl; imagePreview.classList.remove('hidden'); } else { imagePreview.src = ''; imagePreview.classList.add('hidden'); } addTimerModal.classList.remove('hidden'); }
     async function toggleFavorite(id) { const timer = timers.find(t => t.id.toString() === id.toString()); if (!timer) return; const newFavoriteState = !timer.favorite; if (currentUser && db) { try { await db.collection('users').doc(currentUser.uid).collection('timers').doc(id.toString()).update({ favorite: newFavoriteState }); } catch (err) { showToast(`Error: ${err.message}`, 'error'); } } else { timer.favorite = newFavoriteState; saveToLocalStorage(); renderTimers(); } }
-    function updateCountdownDisplay() { const minutes = Math.floor(countdownTotalSeconds / 60); const seconds = countdownTotalSeconds % 60; countdownDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; }
+    
+    function updateCountdownDisplay(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        countdownDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+    }
     
     // --- ALARM FUNCTIONS ---
     function startAlarm(type) {
@@ -291,25 +299,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- COUNTDOWN LOGIC ---
-    function startCountdown(timer = null) { 
-        if (isCountdownPaused) {
-             // If resuming, don't reset the total seconds
-        } else { 
-            const minutes = parseInt(countdownMinutesInput.value) || 0; 
-            const seconds = parseInt(countdownSecondsInput.value) || 0; 
-            countdownTotalSeconds = (minutes * 60) + seconds; 
-        } 
+    function startCountdown(timer = null) {
+        clearInterval(countdownInterval);
+        clearTimeout(flipTimeout);
 
-        if (countdownTotalSeconds <= 0) { 
-            showToast("Set a time first.", "error"); 
-            return; 
-        } 
-        initAudio(); 
-        isCountdownPaused = false; 
-        countdownStartBtn.classList.add('hidden'); 
-        countdownPauseBtn.classList.remove('hidden'); 
-        countdownInputsDiv.classList.add('hidden'); 
-        
+        if (secondsLeftOnPause > 0) { // Resuming from pause
+            countdownEndTime = Date.now() + secondsLeftOnPause * 1000;
+            countdownTotalSeconds = secondsLeftOnPause;
+            secondsLeftOnPause = 0;
+        } else { // Starting a new timer
+            const minutes = parseInt(countdownMinutesInput.value) || 0;
+            const seconds = parseInt(countdownSecondsInput.value) || 0;
+            countdownTotalSeconds = (minutes * 60) + seconds;
+            if (countdownTotalSeconds <= 0) {
+                showToast("Set a time first.", "error");
+                return;
+            }
+            countdownEndTime = Date.now() + countdownTotalSeconds * 1000;
+        }
+
+        initAudio();
+        countdownStartBtn.classList.add('hidden');
+        countdownPauseBtn.classList.remove('hidden');
+        countdownInputsDiv.classList.add('hidden');
+
         if (timer && timer.flip && countdownTotalSeconds > 1) {
             const flipTime = Math.floor(countdownTotalSeconds / 2);
             flipTimeout = setTimeout(() => {
@@ -317,47 +330,69 @@ document.addEventListener('DOMContentLoaded', function() {
             }, flipTime * 1000);
         }
 
-        countdownInterval = setInterval(() => { 
-            countdownTotalSeconds--; 
-            updateCountdownDisplay(); 
-            if (countdownTotalSeconds <= 0) { 
-                clearInterval(countdownInterval); 
+        const tick = () => {
+            const secondsLeft = Math.round((countdownEndTime - Date.now()) / 1000);
+            
+            if (secondsLeft <= 0) {
+                updateCountdownDisplay(0);
+                clearInterval(countdownInterval);
                 clearTimeout(flipTimeout);
                 startAlarm('timesUp');
-            } 
-        }, 1000); 
+                return;
+            }
+            updateCountdownDisplay(secondsLeft);
+        };
+
+        tick(); // Run once immediately
+        countdownInterval = setInterval(tick, 1000);
     }
 
-    function pauseCountdown() { 
-        isCountdownPaused = true; 
-        clearInterval(countdownInterval); 
-        clearTimeout(flipTimeout); 
+    function pauseCountdown() {
+        secondsLeftOnPause = Math.round((countdownEndTime - Date.now()) / 1000);
+        clearInterval(countdownInterval);
+        clearTimeout(flipTimeout);
         stopContinuousBeep();
-        countdownStartBtn.classList.remove('hidden'); 
-        countdownPauseBtn.classList.add('hidden'); 
+        countdownStartBtn.classList.remove('hidden');
+        countdownPauseBtn.classList.add('hidden');
     }
 
-    function resetCountdown() { 
-        clearInterval(countdownInterval); 
-        clearTimeout(flipTimeout); 
+    function resetCountdown() {
+        clearInterval(countdownInterval);
+        clearTimeout(flipTimeout);
         stopAlarm();
-        isCountdownPaused = false; 
-        countdownTotalSeconds = 0; 
-        updateCountdownDisplay(); 
-        countdownMinutesInput.value = ''; 
-        countdownSecondsInput.value = ''; 
-        countdownStartBtn.classList.remove('hidden'); 
-        countdownPauseBtn.classList.add('hidden'); 
-        countdownInputsDiv.classList.remove('hidden'); 
+        secondsLeftOnPause = 0;
+        countdownEndTime = 0;
+        countdownTotalSeconds = 0;
+        updateCountdownDisplay(0);
+        countdownMinutesInput.value = '';
+        countdownSecondsInput.value = '';
+        countdownStartBtn.classList.remove('hidden');
+        countdownPauseBtn.classList.add('hidden');
+        countdownInputsDiv.classList.remove('hidden');
     }
 
-    function loadAndStartCountdown(timer) { 
-        resetCountdown(); 
-        countdownMinutesInput.value = timer.minutes; 
-        countdownSecondsInput.value = timer.seconds; 
-        startCountdown(timer); 
-        document.getElementById('countdown-timer-section').scrollIntoView({ behavior: 'smooth' }); 
+    function loadAndStartCountdown(timer) {
+        resetCountdown();
+        countdownMinutesInput.value = timer.minutes;
+        countdownSecondsInput.value = timer.seconds;
+        startCountdown(timer);
+        document.getElementById('countdown-timer-section').scrollIntoView({ behavior: 'smooth' });
     }
+
+    // Add event listener to sync timer when tab becomes visible
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && countdownEndTime > 0 && secondsLeftOnPause === 0) {
+            const secondsLeft = Math.round((countdownEndTime - Date.now()) / 1000);
+            if (secondsLeft > 0) {
+                updateCountdownDisplay(secondsLeft);
+            } else {
+                updateCountdownDisplay(0);
+                if (!alarmModal.classList.contains('hidden')) {
+                     startAlarm('timesUp');
+                }
+            }
+        }
+    });
     
     // --- DATA PERSISTENCE ---
     function saveToLocalStorage() { if (currentUser) return; localStorage.setItem('airFryerTimers', JSON.stringify(timers)); }
