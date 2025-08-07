@@ -1,4 +1,4 @@
-console.log("Executing script.js version 4.3 - Fixed Recursion Bug");
+console.log("Executing script.js version 4.4 - Fixed Recursion Bug and Manual Reset");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- THEME MANAGEMENT ---
@@ -283,11 +283,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function stopAlarm() {
         alarmModal.classList.add('hidden');
         stopContinuousBeep();
-        if (currentAlarmType === 'timesUp') {
-            // Only reset the timer UI if the main alarm was stopped.
-            // Don't reset for a flip reminder.
-            resetCountdown();
-        }
+        // If the main timer finished, we leave the timer at 00:00
+        // The user must manually press the reset button.
+        // We do NOT call resetCountdown() here anymore.
         currentAlarmType = null;
     }
 
@@ -301,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- COUNTDOWN LOGIC ---
     function startCountdown(timer = null) { 
         if (isCountdownPaused) {
-            // If resuming, don't reset the total seconds
+             // If resuming, don't reset the total seconds
         } else { 
             const minutes = parseInt(countdownMinutesInput.value) || 0; 
             const seconds = parseInt(countdownSecondsInput.value) || 0; 
@@ -348,9 +346,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetCountdown() { 
         clearInterval(countdownInterval); 
         clearTimeout(flipTimeout); 
-        if (alarmModal.classList.contains('hidden')) { // Only stop alarm if it's not showing
-             stopAlarm();
-        }
+        stopAlarm();
         isCountdownPaused = false; 
         countdownTotalSeconds = 0; 
         updateCountdownDisplay(); 
