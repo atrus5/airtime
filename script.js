@@ -1,4 +1,4 @@
-console.log("Executing script.js version 4.0 - Persistent Alarms");
+console.log("Executing script.js version 4.1 - Fixed Final Alarm");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- THEME MANAGEMENT ---
