@@ -1,27 +1,27 @@
-console.log("Executing script.js version 4.4 - Fixed Recursion Bug and Manual Reset");
+console.log("Executing script.js version 1.4 - Moved theme toggle to header");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- THEME MANAGEMENT ---
-    const themeToggleBtn = document.getElementById('theme-toggle-btn');
-    const themeIconDark = document.getElementById('theme-icon-dark');
-    const themeIconLight = document.getElementById('theme-icon-light');
+    const themeToggleBtnHeader = document.getElementById('theme-toggle-btn-header');
+    const themeIconDarkHeader = document.getElementById('theme-icon-dark-header');
+    const themeIconLightHeader = document.getElementById('theme-icon-light-header');
 
     function applyTheme(theme) {
         if (theme === 'dark') {
             document.documentElement.classList.add('dark');
-            if (themeIconDark) themeIconDark.classList.add('hidden');
-            if (themeIconLight) themeIconLight.classList.remove('hidden');
+            if (themeIconDarkHeader) themeIconDarkHeader.classList.add('hidden');
+            if (themeIconLightHeader) themeIconLightHeader.classList.remove('hidden');
         } else {
             document.documentElement.classList.remove('dark');
-            if (themeIconDark) themeIconDark.classList.remove('hidden');
-            if (themeIconLight) themeIconLight.classList.add('hidden');
+            if (themeIconDarkHeader) themeIconDarkHeader.classList.remove('hidden');
+            if (themeIconLightHeader) themeIconLightHeader.classList.add('hidden');
         }
     }
     
     applyTheme(localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
 
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', () => {
+    if (themeToggleBtnHeader) {
+        themeToggleBtnHeader.addEventListener('click', () => {
             const isDark = document.documentElement.classList.contains('dark');
             const newTheme = isDark ? 'light' : 'dark';
             localStorage.setItem('theme', newTheme);
@@ -76,8 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const favoritesBtn = document.getElementById('favorites-btn');
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toast-message');
-    const signoutBtn = document.getElementById('signout-btn');
-    const userInfoDiv = document.getElementById('user-info');
+    const userInfo = document.getElementById('user-info');
     const userPhoto = document.getElementById('user-photo');
     const timerIdInput = document.getElementById('timer-id');
     const foodImageInput = document.getElementById('food-image');
@@ -122,8 +121,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (user) {
                 currentUser = user;
                 openAuthModalBtn.classList.add('hidden');
-                userInfoDiv.classList.remove('hidden');
-                userInfoDiv.classList.add('flex');
+                userInfo.classList.remove('hidden');
+                userInfo.classList.add('flex');
                 if(user.photoURL) {
                     userPhoto.src = user.photoURL;
                     userPhoto.classList.remove('hidden');
@@ -140,8 +139,8 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 currentUser = null;
                 openAuthModalBtn.classList.remove('hidden');
-                userInfoDiv.classList.add('hidden');
-                userInfoDiv.classList.remove('flex');
+                userInfo.classList.add('hidden');
+                userInfo.classList.remove('flex');
                 if (unsubscribe) unsubscribe();
                 timers = [];
                 loadFromLocalStorage();
@@ -150,7 +149,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         googleSigninBtnModal.addEventListener('click', () => { auth.signInWithPopup(googleProvider).then(() => authModal.classList.add('hidden')).catch(err => { console.error("Sign in error", err); showToast(`Error: ${err.message}`, 'error'); }); });
-        signoutBtn.addEventListener('click', () => { auth.signOut(); showToast("You've been signed out.", 'success'); });
 
         signinForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -205,7 +203,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if(homeBtn) {
         homeBtn.addEventListener('click', () => { 
             // This is a link now, so JS interaction for view switching isn't needed,
-            // but we keep the style handling for when the page loads.
         });
     }
 
