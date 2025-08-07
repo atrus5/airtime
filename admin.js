@@ -37,15 +37,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- AUTH STATE ---
     auth.onAuthStateChanged(user => {
         if (user) {
-            // A simple check for an admin user. In a real app, use custom claims.
-            if (user.email === "admin@example.com") {
-                loginView.classList.add('hidden');
-                dashboardView.classList.remove('hidden');
-                loadPublicRecipes();
-            } else {
-                alert("You are not authorized to view this page.");
+            // Force refresh the user's ID token to get the latest custom claims.
+            user.getIdTokenResult(true).then((idTokenResult) => {
+                // Check for the admin custom claim.
+                if (idTokenResult.claims.admin) {
+                    loginView.classList.add('hidden');
+                    dashboardView.classList.remove('hidden');
+                    loadPublicRecipes();
+                } else {
+                    alert("You are not authorized to view this page.");
+                    auth.signOut();
+                }
+            }).catch((error) => {
+                console.error("Error getting user token:", error);
                 auth.signOut();
-            }
+            });
         } else {
             loginView.classList.remove('hidden');
             dashboardView.classList.add('hidden');
