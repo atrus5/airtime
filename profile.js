@@ -1,4 +1,4 @@
-console.log("Executing profile.js version 1.0");
+console.log("Executing profile.js version 1.1 - Fixed auth redirect race condition");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- FIREBASE CONFIG & INITIALIZATION ---
@@ -67,8 +67,14 @@ document.addEventListener('DOMContentLoaded', function() {
             currentUser = user;
             loadProfileData();
         } else {
-            // If no user is logged in, redirect to the home page.
-            window.location.href = 'index.html';
+            // User is not logged in. Show a message instead of redirecting immediately.
+            // This prevents the redirect race condition on page load.
+            profileLoading.innerHTML = `
+                <p class="text-gray-500 dark:text-slate-400">You must be logged in to view this page.</p>
+                <a href="index.html" class="mt-4 inline-block text-indigo-600 dark:text-indigo-400 hover:underline">Go to Homepage to Sign In</a>
+            `;
+            profileLoading.classList.remove('hidden');
+            profileContent.classList.add('hidden');
         }
     });
 
