@@ -1,4 +1,4 @@
-console.log("Executing script.js version 4.1 - Fixed Final Alarm");
+console.log("Executing script.js version 4.2 - Corrected Final Alarm Logic");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- THEME MANAGEMENT ---
@@ -105,7 +105,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let unsubscribe;
     let countdownInterval;
     let flipTimeout;
-    let beepInterval; // <-- For continuous beeping
+    let beepInterval;
+    let currentAlarmType = null; // To track which alarm is ringing
     let countdownTotalSeconds = 0;
     let isCountdownPaused = false;
     let audioCtx;
@@ -257,6 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- ALARM FUNCTIONS ---
     function startAlarm(type) {
+        currentAlarmType = type; // Keep track of which alarm is ringing
         alarmModal.classList.remove('hidden');
         let iconSvg, titleText, beepFn;
 
@@ -267,20 +269,25 @@ document.addEventListener('DOMContentLoaded', function() {
         } else { // 'timesUp'
             titleText = "Time's Up!";
             iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-500 mx-auto" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`;
-            beepFn = () => beep(10, 400, 150); // A longer beep for the final alarm
+            beepFn = () => beep(10, 400, 150);
         }
 
         alarmTitle.textContent = titleText;
         alarmIcon.innerHTML = iconSvg;
         
-        stopContinuousBeep(); // Stop any previous beeping
-        beepFn(); // Beep once immediately
-        beepInterval = setInterval(beepFn, 4000); // Beep every 4 seconds
+        stopContinuousBeep();
+        beepFn();
+        beepInterval = setInterval(beepFn, 4000);
     }
 
     function stopAlarm() {
         alarmModal.classList.add('hidden');
         stopContinuousBeep();
+        // If the main timer finished, reset the UI to a clean state.
+        if (currentAlarmType === 'timesUp') {
+            resetCountdown();
+        }
+        currentAlarmType = null;
     }
 
     function stopContinuousBeep() {
@@ -292,12 +299,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- COUNTDOWN LOGIC ---
     function startCountdown(timer = null) { 
-        if (!isCountdownPaused) { 
+        if (isCountdownPaused) {
+            // Do nothing if paused, just resume
+        } else { 
             const minutes = parseInt(countdownMinutesInput.value) || 0; 
             const seconds = parseInt(countdownSecondsInput.value) || 0; 
             countdownTotalSeconds = (minutes * 60) + seconds; 
         } 
-        if (countdownTotalSeconds <= 0) { showToast("Set a time first.", "error"); return; } 
+
+        if (countdownTotalSeconds <= 0) { 
+            showToast("Set a time first.", "error"); 
+            return; 
+        } 
         initAudio(); 
         isCountdownPaused = false; 
         countdownStartBtn.classList.add('hidden'); 
@@ -318,7 +331,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 clearInterval(countdownInterval); 
                 clearTimeout(flipTimeout);
                 startAlarm('timesUp');
-                resetCountdown(); 
             } 
         }, 1000); 
     }
@@ -327,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
         isCountdownPaused = true; 
         clearInterval(countdownInterval); 
         clearTimeout(flipTimeout); 
-        stopContinuousBeep(); // Also stop beeping if paused during an alarm
+        stopContinuousBeep();
         countdownStartBtn.classList.remove('hidden'); 
         countdownPauseBtn.classList.add('hidden'); 
     }
@@ -335,7 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetCountdown() { 
         clearInterval(countdownInterval); 
         clearTimeout(flipTimeout); 
-        stopAlarm(); // Stop any active alarm and hide modal
+        stopAlarm();
         isCountdownPaused = false; 
         countdownTotalSeconds = 0; 
         updateCountdownDisplay(); 
