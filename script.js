@@ -1,4 +1,4 @@
-console.log("Executing script.js version 4.2 - Corrected Final Alarm Logic");
+console.log("Executing script.js version 4.3 - Fixed Recursion Bug");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- THEME MANAGEMENT ---
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let countdownInterval;
     let flipTimeout;
     let beepInterval;
-    let currentAlarmType = null; // To track which alarm is ringing
+    let currentAlarmType = null;
     let countdownTotalSeconds = 0;
     let isCountdownPaused = false;
     let audioCtx;
@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- ALARM FUNCTIONS ---
     function startAlarm(type) {
-        currentAlarmType = type; // Keep track of which alarm is ringing
+        currentAlarmType = type;
         alarmModal.classList.remove('hidden');
         let iconSvg, titleText, beepFn;
 
@@ -283,8 +283,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function stopAlarm() {
         alarmModal.classList.add('hidden');
         stopContinuousBeep();
-        // If the main timer finished, reset the UI to a clean state.
         if (currentAlarmType === 'timesUp') {
+            // Only reset the timer UI if the main alarm was stopped.
+            // Don't reset for a flip reminder.
             resetCountdown();
         }
         currentAlarmType = null;
@@ -300,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- COUNTDOWN LOGIC ---
     function startCountdown(timer = null) { 
         if (isCountdownPaused) {
-            // Do nothing if paused, just resume
+            // If resuming, don't reset the total seconds
         } else { 
             const minutes = parseInt(countdownMinutesInput.value) || 0; 
             const seconds = parseInt(countdownSecondsInput.value) || 0; 
@@ -347,7 +348,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetCountdown() { 
         clearInterval(countdownInterval); 
         clearTimeout(flipTimeout); 
-        stopAlarm();
+        if (alarmModal.classList.contains('hidden')) { // Only stop alarm if it's not showing
+             stopAlarm();
+        }
         isCountdownPaused = false; 
         countdownTotalSeconds = 0; 
         updateCountdownDisplay(); 
