@@ -1,4 +1,4 @@
-console.log("Executing script.js version 3.0 - Flip Feature");
+console.log("Executing script.js version 4.4 - Fixed Recursion Bug and Manual Reset");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- THEME MANAGEMENT ---
@@ -90,6 +90,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const countdownPauseBtn = document.getElementById('countdown-pause-btn');
     const countdownResetBtn = document.getElementById('countdown-reset-btn');
     const countdownInputsDiv = document.getElementById('countdown-inputs');
+    const alarmModal = document.getElementById('alarm-modal');
+    const alarmTitle = document.getElementById('alarm-title');
+    const stopAlarmBtn = document.getElementById('stop-alarm-btn');
+    const alarmIcon = document.getElementById('alarm-icon');
+
 
     // --- APPLICATION STATE ---
     let timers = [];
@@ -99,7 +104,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentUser = null;
     let unsubscribe;
     let countdownInterval;
-    let flipTimeout; // <-- State for the flip timer
+    let flipTimeout;
+    let beepInterval;
+    let currentAlarmType = null;
     let countdownTotalSeconds = 0;
     let isCountdownPaused = false;
     let audioCtx;
@@ -107,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- FUNCTION DEFINITIONS ---
     function initAudio() { if (!audioCtx) { audioCtx = new(window.AudioContext || window.webkitAudioContext)(); } }
     function beep(times = 5, duration = 400, delay = 150) { if (!audioCtx) return; let time = audioCtx.currentTime; for (let i = 0; i < times; i++) { const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.type = 'sine'; o.frequency.setValueAtTime(880, time); g.gain.setValueAtTime(0.8, time); g.gain.exponentialRampToValueAtTime(0.0001, time + duration / 1000); o.start(time); o.stop(time + duration / 1000); time += (duration + delay) / 1000; } }
-    function flipBeep() { beep(2, 200, 100); } // <-- Shorter, distinct beep for flipping
+    function flipBeep() { beep(2, 200, 100); }
     document.body.addEventListener('click', initAudio, { once: true });
 
     if (auth) {
@@ -186,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
     showSignupBtn.addEventListener('click', () => { signinView.classList.add('hidden'); signupView.classList.remove('hidden'); document.getElementById('auth-modal-title').textContent = 'Sign Up'; });
     showSigninBtn.addEventListener('click', () => { signupView.classList.add('hidden'); signinView.classList.remove('hidden'); document.getElementById('auth-modal-title').textContent = 'Sign In'; });
 
-    closeModalBtns.forEach(btn => { btn.addEventListener('click', () => { addTimerModal.classList.add('hidden'); authModal.classList.add('hidden'); }); });
+    closeModalBtns.forEach(btn => { btn.addEventListener('click', () => { btn.closest('.modal').classList.add('hidden'); }); });
     addTimerBtn.addEventListener('click', () => { timerForm.reset(); timerIdInput.value = ''; document.querySelector('#add-timer-modal h2').textContent = "Add New Timer"; imagePreview.src = ''; imagePreview.classList.add('hidden'); addTimerModal.classList.remove('hidden'); });
     timerForm.addEventListener('submit', handleSaveTimer);
     tempSlider.addEventListener('input', updateTempValue);
@@ -218,6 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
     countdownStartBtn.addEventListener('click', () => startCountdown(null));
     countdownPauseBtn.addEventListener('click', pauseCountdown);
     countdownResetBtn.addEventListener('click', resetCountdown);
+    stopAlarmBtn.addEventListener('click', stopAlarm);
 
     async function handleSaveTimer(e) { e.preventDefault(); const id = timerIdInput.value || Date.now().toString(); const isEditing = !!timerIdInput.value; const toBase64 = file => new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = () => resolve(reader.result); reader.onerror = error => reject(error); }); let imageUrl = ''; const imageFile = foodImageInput.files[0]; if (imageFile) { imageUrl = await toBase64(imageFile); } else if (isEditing) { const existingTimer = timers.find(t => t.id === id); imageUrl = existingTimer?.imageUrl || ''; } 
         const timerData = { 
@@ -232,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
             seconds: parseInt(document.getElementById('time-seconds').value) || 0, 
             notes: document.getElementById('food-notes').value, 
             favorite: isEditing ? (timers.find(t => t.id === id)?.favorite || false) : false,
-            flip: document.getElementById('flip-reminder').checked // <-- Save flip preference
+            flip: document.getElementById('flip-reminder').checked
         }; 
         if (currentUser && db) { try { await db.collection('users').doc(currentUser.uid).collection('timers').doc(id).set(timerData); showToast(`Timer ${isEditing ? 'updated' : 'added'}!`); } catch (err) { showToast(`Error: ${err.message}`, 'error'); } } else { if (isEditing) { const index = timers.findIndex(t => t.id.toString() === id); if (index !== -1) timers[index] = timerData; } else { timers.unshift(timerData); } saveToLocalStorage(); renderTimers(); showToast(`Timer ${isEditing ? 'updated' : 'added'}!`); } addTimerModal.classList.add('hidden'); timerForm.reset(); }
     
@@ -247,25 +255,68 @@ document.addEventListener('DOMContentLoaded', function() {
     function editTimer(timerToEdit) { document.querySelector('#add-timer-modal h2').textContent = "Edit Timer"; timerIdInput.value = timerToEdit.id; document.getElementById('food-name').value = timerToEdit.name; document.getElementById('food-category').value = timerToEdit.category; document.querySelector(`input[name="food-state"][value="${timerToEdit.foodState}"]`).checked = true; tempSlider.value = timerToEdit.temperature; tempUnitToggle.checked = timerToEdit.tempUnit === 'F'; isCelsius = timerToEdit.tempUnit === 'C'; updateTempValue(); document.getElementById('time-minutes').value = timerToEdit.minutes; document.getElementById('time-seconds').value = timerToEdit.seconds || ''; document.getElementById('food-notes').value = timerToEdit.notes || ''; document.getElementById('flip-reminder').checked = timerToEdit.flip || false; if (timerToEdit.imageUrl) { imagePreview.src = timerToEdit.imageUrl; imagePreview.classList.remove('hidden'); } else { imagePreview.src = ''; imagePreview.classList.add('hidden'); } addTimerModal.classList.remove('hidden'); }
     async function toggleFavorite(id) { const timer = timers.find(t => t.id.toString() === id.toString()); if (!timer) return; const newFavoriteState = !timer.favorite; if (currentUser && db) { try { await db.collection('users').doc(currentUser.uid).collection('timers').doc(id.toString()).update({ favorite: newFavoriteState }); } catch (err) { showToast(`Error: ${err.message}`, 'error'); } } else { timer.favorite = newFavoriteState; saveToLocalStorage(); renderTimers(); } }
     function updateCountdownDisplay() { const minutes = Math.floor(countdownTotalSeconds / 60); const seconds = countdownTotalSeconds % 60; countdownDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; }
+    
+    // --- ALARM FUNCTIONS ---
+    function startAlarm(type) {
+        currentAlarmType = type;
+        alarmModal.classList.remove('hidden');
+        let iconSvg, titleText, beepFn;
+
+        if (type === 'flip') {
+            titleText = "Time to Flip!";
+            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-blue-500 mx-auto" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M15.543 11.457a1 1 0 00-1.414-1.414L12 12.172V4a1 1 0 10-2 0v8.172l-2.129-2.129a1 1 0 00-1.414 1.414l4 4a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /><path d="M4.457 8.543a1 1 0 001.414 1.414L8 7.828V16a1 1 0 102 0V7.828l2.129 2.129a1 1 0 001.414-1.414l-4-4a1 1 0 00-1.414 0l-4 4z" /></svg>`;
+            beepFn = flipBeep;
+        } else { // 'timesUp'
+            titleText = "Time's Up!";
+            iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-500 mx-auto" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>`;
+            beepFn = () => beep(10, 400, 150);
+        }
+
+        alarmTitle.textContent = titleText;
+        alarmIcon.innerHTML = iconSvg;
+        
+        stopContinuousBeep();
+        beepFn();
+        beepInterval = setInterval(beepFn, 4000);
+    }
+
+    function stopAlarm() {
+        alarmModal.classList.add('hidden');
+        stopContinuousBeep();
+        currentAlarmType = null;
+    }
+
+    function stopContinuousBeep() {
+        if (beepInterval) {
+            clearInterval(beepInterval);
+            beepInterval = null;
+        }
+    }
+
+    // --- COUNTDOWN LOGIC ---
     function startCountdown(timer = null) { 
-        if (!isCountdownPaused) { 
+        if (isCountdownPaused) {
+             // If resuming, don't reset the total seconds
+        } else { 
             const minutes = parseInt(countdownMinutesInput.value) || 0; 
             const seconds = parseInt(countdownSecondsInput.value) || 0; 
             countdownTotalSeconds = (minutes * 60) + seconds; 
         } 
-        if (countdownTotalSeconds <= 0) { showToast("Set a time first.", "error"); return; } 
+
+        if (countdownTotalSeconds <= 0) { 
+            showToast("Set a time first.", "error"); 
+            return; 
+        } 
         initAudio(); 
         isCountdownPaused = false; 
         countdownStartBtn.classList.add('hidden'); 
         countdownPauseBtn.classList.remove('hidden'); 
         countdownInputsDiv.classList.add('hidden'); 
         
-        // Set flip reminder if applicable
         if (timer && timer.flip && countdownTotalSeconds > 1) {
             const flipTime = Math.floor(countdownTotalSeconds / 2);
             flipTimeout = setTimeout(() => {
-                showToast("Time to Flip!", "success");
-                flipBeep();
+                startAlarm('flip');
             }, flipTime * 1000);
         }
 
@@ -274,16 +325,44 @@ document.addEventListener('DOMContentLoaded', function() {
             updateCountdownDisplay(); 
             if (countdownTotalSeconds <= 0) { 
                 clearInterval(countdownInterval); 
-                clearTimeout(flipTimeout); // Clear flip timeout as well
-                beep(); 
-                resetCountdown(); 
-                showToast("Time's up!", "success"); 
+                clearTimeout(flipTimeout);
+                startAlarm('timesUp');
             } 
         }, 1000); 
     }
-    function pauseCountdown() { isCountdownPaused = true; clearInterval(countdownInterval); clearTimeout(flipTimeout); countdownStartBtn.classList.remove('hidden'); countdownPauseBtn.classList.add('hidden'); }
-    function resetCountdown() { clearInterval(countdownInterval); clearTimeout(flipTimeout); isCountdownPaused = false; countdownTotalSeconds = 0; updateCountdownDisplay(); countdownMinutesInput.value = ''; countdownSecondsInput.value = ''; countdownStartBtn.classList.remove('hidden'); countdownPauseBtn.classList.add('hidden'); countdownInputsDiv.classList.remove('hidden'); }
-    function loadAndStartCountdown(timer) { resetCountdown(); countdownMinutesInput.value = timer.minutes; countdownSecondsInput.value = timer.seconds; startCountdown(timer); document.getElementById('countdown-timer-section').scrollIntoView({ behavior: 'smooth' }); }
+
+    function pauseCountdown() { 
+        isCountdownPaused = true; 
+        clearInterval(countdownInterval); 
+        clearTimeout(flipTimeout); 
+        stopContinuousBeep();
+        countdownStartBtn.classList.remove('hidden'); 
+        countdownPauseBtn.classList.add('hidden'); 
+    }
+
+    function resetCountdown() { 
+        clearInterval(countdownInterval); 
+        clearTimeout(flipTimeout); 
+        stopAlarm();
+        isCountdownPaused = false; 
+        countdownTotalSeconds = 0; 
+        updateCountdownDisplay(); 
+        countdownMinutesInput.value = ''; 
+        countdownSecondsInput.value = ''; 
+        countdownStartBtn.classList.remove('hidden'); 
+        countdownPauseBtn.classList.add('hidden'); 
+        countdownInputsDiv.classList.remove('hidden'); 
+    }
+
+    function loadAndStartCountdown(timer) { 
+        resetCountdown(); 
+        countdownMinutesInput.value = timer.minutes; 
+        countdownSecondsInput.value = timer.seconds; 
+        startCountdown(timer); 
+        document.getElementById('countdown-timer-section').scrollIntoView({ behavior: 'smooth' }); 
+    }
+    
+    // --- DATA PERSISTENCE ---
     function saveToLocalStorage() { if (currentUser) return; localStorage.setItem('airFryerTimers', JSON.stringify(timers)); }
     function loadFromLocalStorage() { const savedTimers = localStorage.getItem('airFryerTimers'); if (savedTimers) { timers = JSON.parse(savedTimers); } else { timers = getSampleTimers(); } renderTimers(); }
     function loadFromFirestore() { if (!currentUser || !db) return; const collectionRef = db.collection('users').doc(currentUser.uid).collection('timers'); unsubscribe = collectionRef.onSnapshot(snapshot => { timers = snapshot.docs.map(doc => doc.data()); renderTimers(); }, error => { console.error("Error fetching timers:", error); showToast("Could not load timers.", "error"); }); }
