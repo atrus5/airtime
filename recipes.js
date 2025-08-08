@@ -363,6 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         handleRatingAndComments(recipe);
+        handleShare(recipe); // ADD THIS LINE
         viewRecipeModal.classList.remove('hidden');
     }
 
@@ -587,7 +588,37 @@ document.addEventListener('DOMContentLoaded', function() {
         
         setStars(userRating);
     }
-    
+
+    // --- SOCIAL SHARING ---
+    function handleShare(recipe) {
+    const shareBtn = document.getElementById('share-recipe-btn');
+    const recipeUrl = window.location.href.split('?')[0] + `?recipe=${recipe.id}`;
+    const shareData = {
+        title: `Air Fryer Recipe: ${recipe.name}`,
+        text: `Check out this delicious air fryer recipe for ${recipe.name}!`,
+        url: recipeUrl,
+    };
+
+    shareBtn.onclick = async () => {
+        if (navigator.share) {
+            // Use Web Share API on supported devices
+            try {
+                await navigator.share(shareData);
+                showToast("Recipe shared successfully!");
+            } catch (err) {
+                console.error("Share failed:", err);
+            }
+        } else {
+            // Fallback for desktop browsers
+            const pinterestUrl = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(recipeUrl)}&media=${encodeURIComponent(recipe.imageUrl || '')}&description=${encodeURIComponent(shareData.text)}`;
+            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(recipeUrl)}`;
+
+            // Simple alert as a fallback UI for now
+            alert(`Share this recipe:\n\nFacebook: ${facebookUrl}\nPinterest: ${pinterestUrl}\n\nOr copy this link: ${recipeUrl}`);
+        }
+    };
+}
+
     // --- UTILITIES ---
     function showToast(message, type = 'success') {
         toastMessage.textContent = message;
