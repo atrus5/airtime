@@ -31,21 +31,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const recipeImageInput = document.getElementById('recipe-image');
     const imagePreview = document.getElementById('recipe-image-preview');
     const saveButton = document.querySelector('#admin-recipe-form button[type="submit"]');
+    const ingredientsContainer = document.getElementById('ingredients-container');
+    const addIngredientBtn = document.getElementById('add-ingredient-btn');
 
     let allPublicRecipes = []; // Cache recipes to avoid re-fetching
 
     // --- AUTH STATE ---
     auth.onAuthStateChanged(user => {
         if (user) {
-            // A simple check for an admin user. In a real app, use custom claims.
-            if (user.email === "admin@example.com") {
-                loginView.classList.add('hidden');
-                dashboardView.classList.remove('hidden');
-                loadPublicRecipes();
-            } else {
-                alert("You are not authorized to view this page.");
+            user.getIdTokenResult(true).then((idTokenResult) => {
+                if (idTokenResult.claims.admin) {
+                    loginView.classList.add('hidden');
+                    dashboardView.classList.remove('hidden');
+                    loadPublicRecipes();
+                } else {
+                    alert("You are not authorized to view this page.");
+                    auth.signOut();
+                }
+            }).catch((error) => {
+                console.error("Error getting user token:", error);
                 auth.signOut();
-            }
+            });
         } else {
             loginView.classList.remove('hidden');
             dashboardView.classList.add('hidden');
@@ -63,8 +69,26 @@ document.addEventListener('DOMContentLoaded', function() {
     if(logoutBtn) logoutBtn.addEventListener('click', () => auth.signOut());
     if(recipeForm) recipeForm.addEventListener('submit', handleSaveRecipe);
     if(recipeImageInput) recipeImageInput.addEventListener('change', previewImage);
+    if(addIngredientBtn) addIngredientBtn.addEventListener('click', () => addIngredientRow());
+    if(ingredientsContainer) ingredientsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-ingredient-btn')) {
+            e.target.closest('.ingredient-row').remove();
+        }
+    });
 
     // --- FUNCTIONS ---
+    function addIngredientRow(ingredient = { qty: '', unit: '', name: '' }) {
+        const div = document.createElement('div');
+        div.className = 'ingredient-row flex space-x-2 items-center';
+        div.innerHTML = `
+            <input type="text" class="w-1/4 p-2 border rounded" placeholder="Qty" value="${ingredient.qty || ''}">
+            <input type="text" class="w-1/4 p-2 border rounded" placeholder="Unit" value="${ingredient.unit || ''}">
+            <input type="text" class="w-1/2 p-2 border rounded" placeholder="Name" value="${ingredient.name || ''}" required>
+            <button type="button" class="remove-ingredient-btn text-red-500 font-bold text-lg">&times;</button>
+        `;
+        ingredientsContainer.appendChild(div);
+    }
+
     function loadPublicRecipes() {
         db.collection('public_recipes').onSnapshot(snapshot => {
             allPublicRecipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -95,7 +119,6 @@ document.addEventListener('DOMContentLoaded', function() {
             recipesListContainer.appendChild(div);
         });
 
-        // Add event listeners for new edit/delete buttons
         recipesListContainer.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => editRecipe(e.target.dataset.id)));
         recipesListContainer.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => deleteRecipe(e.target.dataset.id)));
     }
@@ -120,23 +143,31 @@ document.addEventListener('DOMContentLoaded', function() {
             imageUrl = await toBase64(recipeImageInput.files[0]);
         }
 
+        const ingredients = [];
+        document.querySelectorAll('.ingredient-row').forEach(row => {
+            const qty = row.children[0].value.trim();
+            const unit = row.children[1].value.trim();
+            const name = row.children[2].value.trim();
+            if (name) {
+                ingredients.push({ qty, unit, name, category: 'Uncategorized' });
+            }
+        });
+
         const recipeData = {
             name: document.getElementById('recipe-name').value,
             imageUrl: imageUrl,
             prepTime: document.getElementById('recipe-prep-time').value,
             cookTime: document.getElementById('recipe-cook-time').value,
-            ingredients: document.getElementById('recipe-ingredients').value.split('\n').filter(i => i.trim() !== ''),
+            ingredients: ingredients,
             instructions: document.getElementById('recipe-instructions').value.split('\n').filter(i => i.trim() !== ''),
-            authorId: 'admin' // Mark official recipes
+            authorId: 'admin'
         };
 
         try {
             if (isEditing) {
-                // Update existing recipe
                 await db.collection('public_recipes').doc(id).update(recipeData);
                 alert('Recipe updated!');
             } else {
-                // Add new recipe with a specific ID
                 const newDocRef = db.collection('public_recipes').doc();
                 await newDocRef.set({ ...recipeData, id: newDocRef.id });
                 alert('Recipe added!');
@@ -160,7 +191,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('recipe-name').value = recipe.name;
         document.getElementById('recipe-prep-time').value = recipe.prepTime;
         document.getElementById('recipe-cook-time').value = recipe.cookTime;
-        document.getElementById('recipe-ingredients').value = (recipe.ingredients || []).join('\n');
+        
+        ingredientsContainer.innerHTML = '';
+        if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
+            recipe.ingredients.forEach(ing => addIngredientRow(ing));
+        }
+
         document.getElementById('recipe-instructions').value = (recipe.instructions || []).join('\n');
         
         if (recipe.imageUrl) {
@@ -170,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
             imagePreview.src = '';
             imagePreview.classList.add('hidden');
         }
-        window.scrollTo(0, 0); // Scroll to top to see the form
+        window.scrollTo(0, 0);
     }
 
     function deleteRecipe(id) {
@@ -200,6 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
         recipeForm.reset();
         imagePreview.src = '';
         imagePreview.classList.add('hidden');
+        ingredientsContainer.innerHTML = '';
         formTitle.textContent = 'Add New Recipe';
         document.getElementById('recipe-id').value = '';
     }

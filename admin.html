@@ -6,15 +6,14 @@
     <title>Admin - Manage Recipes</title>
     <link rel="icon" href="favicon.ico" type="image/svg+xml">
     
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-B4S43HDY18"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-B4S43HDY18');
-</script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-B4S43HDY18"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-B4S43HDY18');
+    </script>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -56,7 +55,11 @@
                     <div><label for="recipe-prep-time">Prep Time (min)</label><input type="number" id="recipe-prep-time" class="w-full p-2 border rounded"></div>
                     <div><label for="recipe-cook-time">Cook Time (min)</label><input type="number" id="recipe-cook-time" class="w-full p-2 border rounded"></div>
                 </div>
-                <div class="mb-4"><label for="recipe-ingredients">Ingredients (one per line)</label><textarea id="recipe-ingredients" rows="5" class="w-full p-2 border rounded"></textarea></div>
+                <div class="mb-4">
+                    <label class="block mb-1">Ingredients</label>
+                    <div id="ingredients-container" class="space-y-2"></div>
+                    <button type="button" id="add-ingredient-btn" class="mt-2 text-sm text-blue-600 hover:underline">+ Add Ingredient</button>
+                </div>
                 <div class="mb-4"><label for="recipe-instructions">Instructions (one per line)</label><textarea id="recipe-instructions" rows="5" class="w-full p-2 border rounded"></textarea></div>
                 <button type="submit" class="w-full bg-green-500 text-white p-2 rounded">Save Recipe</button>
             </form>

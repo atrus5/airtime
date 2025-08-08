@@ -6,15 +6,14 @@
     <title>Air Fryer Times</title>
     <link rel="icon" href="favicon.ico" type="image/svg+xml">
     
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-B4S43HDY18"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-B4S43HDY18');
-</script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-B4S43HDY18"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-B4S43HDY18');
+    </script>
 
     <!-- Tailwind CSS for utility classes -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -59,6 +58,8 @@
 <body class="bg-gray-100 dark:bg-slate-900">
     <!-- Main Application Container -->
     <div class="app-container bg-white dark:bg-slate-800">
+     <!-- ADD THIS WRAPPER DIV -->
+        <div class="sticky top-0 z-30">
         <!-- Header Section -->
         <header class="bg-indigo-600 dark:bg-slate-900 text-white p-4 flex justify-between items-center">
             <h1 class="text-xl font-bold">Air Fryer Times</h1>
@@ -78,7 +79,7 @@
         </header>
 
         <!-- Sticky Category Navigation -->
-        <div id="sticky-nav" class="sticky top-0 z-20 bg-white dark:bg-slate-800 shadow-md">
+        <div id="sticky-nav" class="bg-white dark:bg-slate-800 shadow-md">
             <div class="p-4 border-b border-gray-200 dark:border-slate-700">
                 <h3 class="text-lg font-semibold text-gray-700 dark:text-slate-200 mb-3">Categories</h3>
                 <div class="flex overflow-x-auto pb-2 space-x-3">
@@ -91,6 +92,8 @@
                     <button class="category-btn flex-shrink-0 flex flex-col items-center p-2 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg min-w-[70px]" data-category="frozen"><span class="text-2xl">❄️</span><span class="text-xs mt-1 text-yellow-700 dark:text-yellow-300">Frozen</span></button>
                 </div>
             </div>
+        </div>
+        <!-- ADD THIS CLOSING DIV -->
         </div>
 
         <!-- Main Content Area -->
@@ -124,6 +127,7 @@
             <div class="flex justify-around">
                 <a href="index.html" id="home-btn" class="flex flex-col items-center px-4 py-2 text-indigo-600 dark:text-indigo-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg><span class="text-xs mt-1">Timers</span></a>
                 <a href="recipes.html" class="flex flex-col items-center px-4 py-2 text-gray-500 dark:text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg><span class="text-xs mt-1">Recipes</span></a>
+                <a href="shopping-list.html" class="flex flex-col items-center px-4 py-2 text-gray-500 dark:text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg><span class="text-xs mt-1">List</span></a>
                 <a href="profile.html" class="flex flex-col items-center px-4 py-2 text-gray-500 dark:text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg><span class="text-xs mt-1">Profile</span></a>
             </div>
         </nav>
