@@ -1,4 +1,4 @@
-console.log("Executing recipes.js version 7.1 - Fixed missing function error");
+console.log("Executing recipes.js version 8.0 - Added Ratings and Comments");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- FIREBASE CONFIG & INITIALIZATION ---
@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentUser = null;
     let currentTab = 'official';
     let unsubscribePublic, unsubscribeCommunity, unsubscribeMyRecipes;
+    let currentRecipeCommentsUnsubscribe = null;
 
     // --- AUTHENTICATION & DATA LOADING ---
     auth.onAuthStateChanged(user => {
@@ -142,13 +143,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
         }
 
-        // Filtering
         const searchTerm = searchInput.value.toLowerCase();
         if (searchTerm) {
             recipesToRender = recipesToRender.filter(recipe => recipe.name.toLowerCase().includes(searchTerm));
         }
 
-        // Sorting
         const sortBy = sortSelect.value;
         switch (sortBy) {
             case 'latest': recipesToRender.sort((a, b) => (b.id > a.id) ? 1 : -1); break;
@@ -197,15 +196,21 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <div class="p-4 cursor-pointer view-recipe-trigger">
                 <h3 class="font-bold text-lg text-gray-800 dark:text-slate-100">${recipe.name}</h3>
-                <div class="flex items-center space-x-4 text-sm text-gray-500 dark:text-slate-400 mt-2">
-                    <span>Prep: ${recipe.prepTime || 'N/A'} min</span>
-                    <span>Cook: ${recipe.cookTime || 'N/A'} min</span>
+                <div class="flex items-center justify-between text-sm text-gray-500 dark:text-slate-400 mt-2">
+                    <div class="flex items-center space-x-4">
+                        <span>Prep: ${recipe.prepTime || 'N/A'} min</span>
+                        <span>Cook: ${recipe.cookTime || 'N/A'} min</span>
+                    </div>
+                    <div class="flex items-center" id="card-rating-${recipe.id}">
+                        <!-- Star will be rendered by JS -->
+                    </div>
                 </div>
             </div>
         `;
         card.querySelectorAll('.view-recipe-trigger').forEach(el => el.addEventListener('click', () => viewRecipe(recipe)));
         card.querySelector('.favorite-btn').addEventListener('click', () => toggleFavorite(recipe));
         card.querySelector('.add-to-list-btn').addEventListener('click', () => addRecipeToShoppingList(recipe));
+        displayAverageRating(recipe, `card-rating-${recipe.id}`);
         return card;
     }
 
@@ -221,6 +226,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     closeModalBtns.forEach(btn => btn.addEventListener('click', () => {
         btn.closest('.modal').classList.add('hidden');
+        if (currentRecipeCommentsUnsubscribe) {
+            currentRecipeCommentsUnsubscribe();
+            currentRecipeCommentsUnsubscribe = null;
+        }
     }));
     
     addIngredientBtn.addEventListener('click', addIngredientRow);
@@ -245,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     recipeForm.addEventListener('submit', handleSaveRecipe);
 
-    // --- RECIPE ACTIONS (SAVE, VIEW, DELETE, FAVORITE, ADD TO LIST) ---
+    // --- RECIPE ACTIONS ---
     async function handleSaveRecipe(e) {
         e.preventDefault();
         if (!currentUser) {
@@ -269,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (imageFile) {
             imageUrl = await toBase64(imageFile);
         } else if (isEditing) {
-            const existingRecipe = myRecipes.find(r => r.id === recipeId) || communityRecipes.find(r => r.id === recipeId);
+            const existingRecipe = myRecipes.find(r => r.id === recipeId) || communityRecipes.find(r => r.id === recipeId) || publicRecipes.find(r => r.id === recipeId);
             imageUrl = existingRecipe?.imageUrl || '';
         }
 
@@ -291,7 +300,8 @@ document.addEventListener('DOMContentLoaded', function() {
             ingredients: ingredients,
             instructions: document.getElementById('recipe-instructions').value.split('\n').filter(i => i.trim() !== ''),
             authorId: currentUser.uid,
-            favorite: isEditing ? (myRecipes.find(r => r.id === recipeId)?.favorite || false) : false
+            favorite: isEditing ? (myRecipes.find(r => r.id === recipeId)?.favorite || false) : false,
+            ratings: isEditing ? (myRecipes.find(r => r.id === recipeId)?.ratings || {}) : {}
         };
 
         const newCollectionPath = shareWithCommunity ? 'community_recipes' : `users/${currentUser.uid}/recipes`;
@@ -330,6 +340,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('view-recipe-ingredients').innerHTML = `<ul>${ingredientsHtml}</ul>`;
         document.getElementById('view-recipe-instructions').innerHTML = `<ol>${(recipe.instructions || []).map(i => `<li>${i}</li>`).join('')}</ol>`;
         
+        displayAverageRating(recipe);
+
         const actionsContainer = document.getElementById('view-recipe-actions');
         actionsContainer.innerHTML = ''; 
         if (currentUser && recipe.authorId === currentUser.uid) {
@@ -349,7 +361,8 @@ document.addEventListener('DOMContentLoaded', function() {
             actionsContainer.appendChild(editBtn);
             actionsContainer.appendChild(deleteBtn);
         }
-
+        
+        handleRatingAndComments(recipe);
         viewRecipeModal.classList.remove('hidden');
     }
 
@@ -371,11 +384,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function deleteUserRecipe(recipe) {
-        // ... (delete logic)
+        if (!confirm("Are you sure you want to delete this recipe?")) return;
+        
+        const isCommunity = communityRecipes.some(r => r.id === recipe.id);
+        const collectionPath = isCommunity ? 'community_recipes' : `users/${currentUser.uid}/recipes`;
+
+        try {
+            await db.collection(collectionPath).doc(recipe.id).delete();
+            showToast("Recipe deleted!");
+            viewRecipeModal.classList.add('hidden');
+        } catch (error) {
+            console.error("Error deleting recipe:", error);
+            showToast("Could not delete recipe.", "error");
+        }
     }
     
     async function toggleFavorite(recipe) {
-        // ... (favorite logic)
+        if (!currentUser) {
+            showToast("Please sign in to favorite recipes.", "error");
+            return;
+        }
+        
+        const userRecipeRef = db.collection(`users/${currentUser.uid}/recipes`).doc(recipe.id);
+        const userRecipeDoc = await userRecipeRef.get();
+
+        if (userRecipeDoc.exists) {
+            const currentFavoriteState = userRecipeDoc.data().favorite || false;
+            await userRecipeRef.update({ favorite: !currentFavoriteState });
+            showToast(!currentFavoriteState ? "Recipe favorited!" : "Recipe unfavorited.");
+        } else {
+            const newRecipeData = { ...recipe, favorite: true, authorId: currentUser.uid };
+            await userRecipeRef.set(newRecipeData);
+            showToast("Recipe added to your collection and favorited!");
+        }
     }
 
     async function addRecipeToShoppingList(recipe) {
@@ -414,6 +455,138 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast("Could not add to shopping list.", "error");
         }
     }
+
+    // --- RATING AND COMMENT FUNCTIONS ---
+    function displayAverageRating(recipe, containerId = null) {
+        const ratings = recipe.ratings || {};
+        const ratingCount = Object.keys(ratings).length;
+        const container = containerId ? document.getElementById(containerId) : document.getElementById('view-average-rating');
+        if (!container) return;
+        
+        if (ratingCount === 0) {
+            container.innerHTML = `<span class="text-sm text-gray-500 dark:text-slate-400">No ratings yet</span>`;
+            return;
+        }
+
+        const total = Object.values(ratings).reduce((sum, rating) => sum + rating, 0);
+        const average = (total / ratingCount).toFixed(1);
+
+        container.innerHTML = `
+            <div class="flex items-center">
+                <span class="text-yellow-500 mr-1">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                </span>
+                <span class="font-bold text-gray-700 dark:text-slate-200">${average}</span>
+                <span class="text-xs text-gray-500 dark:text-slate-400 ml-1">(${ratingCount})</span>
+            </div>
+        `;
+    }
+
+    function handleRatingAndComments(recipe) {
+        if (currentRecipeCommentsUnsubscribe) currentRecipeCommentsUnsubscribe();
+
+        const addRatingSection = document.getElementById('add-rating-section');
+        if (!currentUser) {
+            addRatingSection.innerHTML = '<p class="text-sm text-gray-500 dark:text-slate-400">Please sign in to rate or comment.</p>';
+            document.getElementById('comments-list').innerHTML = '';
+            return;
+        }
+
+        const starRatingContainer = document.getElementById('user-star-rating');
+        const stars = starRatingContainer.querySelectorAll('svg');
+        const commentForm = document.getElementById('comment-form');
+        const commentInput = document.getElementById('comment-input');
+        const commentsList = document.getElementById('comments-list');
+
+        let userRating = recipe.ratings && recipe.ratings[currentUser.uid] ? recipe.ratings[currentUser.uid] : 0;
+
+        const setStars = (rating) => {
+            stars.forEach(star => {
+                star.classList.toggle('selected', star.dataset.value <= rating);
+            });
+        };
+        
+        const handleStarHover = (e) => {
+             if (e.target.tagName === 'svg' || e.target.closest('svg')) {
+                const starValue = e.target.closest('svg').dataset.value;
+                setStars(starValue);
+            }
+        };
+
+        starRatingContainer.addEventListener('mouseover', handleStarHover);
+        starRatingContainer.addEventListener('mouseleave', () => setStars(userRating));
+
+        starRatingContainer.onclick = async (e) => {
+            if (e.target.tagName === 'svg' || e.target.closest('svg')) {
+                const star = e.target.closest('svg');
+                const newRating = parseInt(star.dataset.value);
+                userRating = newRating;
+                setStars(userRating);
+
+                const recipeCollection = recipe.authorId === 'admin' ? 'public_recipes' : 'community_recipes';
+                const recipeRef = db.collection(recipeCollection).doc(recipe.id);
+                try {
+                    await recipeRef.update({
+                        [`ratings.${currentUser.uid}`]: newRating
+                    });
+                    showToast("Rating saved!");
+                } catch (error) {
+                    console.error("Error saving rating:", error);
+                    showToast("Could not save rating.", "error");
+                }
+            }
+        };
+
+        commentForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const commentText = commentInput.value.trim();
+            if (!commentText) return;
+
+            const newComment = {
+                text: commentText,
+                authorId: currentUser.uid,
+                authorName: currentUser.displayName,
+                authorPhoto: currentUser.photoURL,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            const recipeCollection = recipe.authorId === 'admin' ? 'public_recipes' : 'community_recipes';
+            try {
+                await db.collection(recipeCollection).doc(recipe.id).collection('comments').add(newComment);
+                commentInput.value = '';
+                showToast("Comment posted!");
+            } catch (error) {
+                console.error("Error posting comment:", error);
+                showToast("Could not post comment.", "error");
+            }
+        };
+
+        const recipeCollection = recipe.authorId === 'admin' ? 'public_recipes' : 'community_recipes';
+        currentRecipeCommentsUnsubscribe = db.collection(recipeCollection).doc(recipe.id).collection('comments').orderBy('timestamp', 'desc')
+            .onSnapshot(snapshot => {
+                commentsList.innerHTML = '';
+                if (snapshot.empty) {
+                    commentsList.innerHTML = '<p class="text-sm text-gray-500 dark:text-slate-400">No comments yet.</p>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const comment = doc.data();
+                    const commentEl = document.createElement('div');
+                    commentEl.className = 'flex items-start space-x-3';
+                    const placeholderImg = 'https://placehold.co/40x40/e0e7ff/4338ca?text=User';
+                    commentEl.innerHTML = `
+                        <img src="${comment.authorPhoto || placeholderImg}" class="w-10 h-10 rounded-full object-cover" onerror="this.onerror=null;this.src='${placeholderImg}';">
+                        <div class="flex-1">
+                            <p class="font-semibold text-sm dark:text-slate-200">${comment.authorName}</p>
+                            <p class="text-sm text-gray-700 dark:text-slate-300">${comment.text}</p>
+                        </div>
+                    `;
+                    commentsList.appendChild(commentEl);
+                });
+            });
+        
+        setStars(userRating);
+    }
     
     // --- UTILITIES ---
     function showToast(message, type = 'success') {
@@ -423,4 +596,3 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => toast.classList.remove('show'), 3000);
     }
 });
-
