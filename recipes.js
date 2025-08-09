@@ -364,6 +364,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         handleRatingAndComments(recipe);
         handleShare(recipe);
+
+        const startCookingBtn = document.getElementById('start-cooking-btn');
+        if (startCookingBtn) {
+            startCookingBtn.onclick = () => {
+                window.open(`cook-mode.html?recipe=${recipe.id}`, '_blank');
+            };
+        }
+
         viewRecipeModal.classList.remove('hidden');
     }
 
