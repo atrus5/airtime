@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cook Mode - Air Fryer Times</title>
+    <link rel="icon" href="favicon.ico" type="image/svg+xml">
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-B4S43HDY18"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-B4S43HDY18');
+    </script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { darkMode: 'class' }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        /* Hide scrollbars */
+        ::-webkit-scrollbar { display: none; }
+        html { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 h-full flex flex-col">
+    
+    <div id="loading-view" class="flex-grow flex items-center justify-center">
+        <p>Loading recipe...</p>
+    </div>
+
+    <div id="cook-mode-view" class="hidden h-full flex-grow flex flex-col">
+        <!-- Header -->
+        <header class="p-4 flex justify-between items-center border-b dark:border-slate-700">
+            <h1 id="recipe-title" class="text-xl font-bold truncate">Recipe Title</h1>
+            <button id="exit-cook-mode" class="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600">Exit</button>
+        </header>
+
+        <!-- Main Instruction Area -->
+        <main class="flex-grow flex items-center justify-center text-center p-6">
+            <p id="instruction-text" class="text-3xl md:text-5xl font-semibold leading-tight">
+                Welcome to Cook Mode! Tap next to begin.
+            </p>
+        </main>
+
+        <!-- Footer Navigation -->
+        <footer class="p-4 border-t dark:border-slate-700 flex justify-between items-center">
+            <button id="prev-step" class="px-6 py-3 bg-gray-200 dark:bg-slate-700 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                Previous
+            </button>
+            <div id="step-counter" class="text-lg font-medium">Step 0 / 0</div>
+            <button id="next-step" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                Next
+            </button>
+        </footer>
+    </div>
+
+    <script src="cook-mode.js"></script>
+</body>
+</html>

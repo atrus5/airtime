@@ -1,4 +1,4 @@
-console.log("Executing recipes.js version 8.0 - Added Ratings and Comments");
+console.log("Executing recipes.js version 8.1 - Added Cook Mode button");
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- FIREBASE CONFIG & INITIALIZATION ---
@@ -363,7 +363,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         handleRatingAndComments(recipe);
-        handleShare(recipe); // ADD THIS LINE
+        handleShare(recipe);
+
+        const startCookingBtn = document.getElementById('start-cooking-btn');
+        if (startCookingBtn) {
+            startCookingBtn.onclick = () => {
+                window.open(`cook-mode.html?recipe=${recipe.id}`, '_blank');
+            };
+        }
+
         viewRecipeModal.classList.remove('hidden');
     }
 
@@ -588,36 +596,34 @@ document.addEventListener('DOMContentLoaded', function() {
         
         setStars(userRating);
     }
-
+    
     // --- SOCIAL SHARING ---
     function handleShare(recipe) {
-    const shareBtn = document.getElementById('share-recipe-btn');
-    const recipeUrl = window.location.href.split('?')[0] + `?recipe=${recipe.id}`;
-    const shareData = {
-        title: `Air Fryer Recipe: ${recipe.name}`,
-        text: `Check out this delicious air fryer recipe for ${recipe.name}!`,
-        url: recipeUrl,
-    };
+        const shareBtn = document.getElementById('share-recipe-btn');
+        if (!shareBtn) return;
 
-    shareBtn.onclick = async () => {
-        if (navigator.share) {
-            // Use Web Share API on supported devices
-            try {
-                await navigator.share(shareData);
-                showToast("Recipe shared successfully!");
-            } catch (err) {
-                console.error("Share failed:", err);
+        const recipeUrl = `${window.location.origin}/recipes.html?recipe=${recipe.id}`;
+        const shareData = {
+            title: `Air Fryer Recipe: ${recipe.name}`,
+            text: `Check out this delicious air fryer recipe for ${recipe.name}!`,
+            url: recipeUrl,
+        };
+
+        shareBtn.onclick = async () => {
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                } catch (err) {
+                    console.error("Share failed:", err);
+                }
+            } else {
+                const pinterestUrl = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(recipeUrl)}&media=${encodeURIComponent(recipe.imageUrl || '')}&description=${encodeURIComponent(shareData.text)}`;
+                const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(recipeUrl)}`;
+                
+                alert(`Share this recipe:\n\nFacebook: ${facebookUrl}\nPinterest: ${pinterestUrl}\n\nOr copy this link: ${recipeUrl}`);
             }
-        } else {
-            // Fallback for desktop browsers
-            const pinterestUrl = `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(recipeUrl)}&media=${encodeURIComponent(recipe.imageUrl || '')}&description=${encodeURIComponent(shareData.text)}`;
-            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(recipeUrl)}`;
-
-            // Simple alert as a fallback UI for now
-            alert(`Share this recipe:\n\nFacebook: ${facebookUrl}\nPinterest: ${pinterestUrl}\n\nOr copy this link: ${recipeUrl}`);
-        }
-    };
-}
+        };
+    }
 
     // --- UTILITIES ---
     function showToast(message, type = 'success') {
