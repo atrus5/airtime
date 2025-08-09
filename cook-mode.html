@@ -44,7 +44,7 @@
         <!-- Header -->
         <header class="p-4 flex justify-between items-center border-b dark:border-slate-700">
             <h1 id="recipe-title" class="text-xl font-bold truncate">Recipe Title</h1>
-            <button id="exit-cook-mode" class="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600">Exit</button>
+            <button id="exit-cook-mode" title="Close cook mode and return" class="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600">Exit</button>
         </header>
 
         <!-- Main Instruction Area -->
@@ -56,11 +56,11 @@
 
         <!-- Footer Navigation -->
         <footer class="p-4 border-t dark:border-slate-700 flex justify-between items-center">
-            <button id="prev-step" class="px-6 py-3 bg-gray-200 dark:bg-slate-700 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button id="prev-step" title="Go to the previous step" class="px-6 py-3 bg-gray-200 dark:bg-slate-700 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">
                 Previous
             </button>
             <div id="step-counter" class="text-lg font-medium">Step 0 / 0</div>
-            <button id="next-step" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+            <button id="next-step" title="Go to the next step" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                 Next
             </button>
         </footer>
